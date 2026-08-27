@@ -1,0 +1,246 @@
+<title>The Record Map — Gordana Kotevski</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper: #F5F6F4; --panel: #EDEFEC; --ink: #1E2622; --muted: #5C665F;
+    --line: #D5DAD5; --accent: #2E5E57; --accent-ink: #24493F;
+    --brass: #8F6420; --live: #7A2E2E; --live-soft: #F0DEDC;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #161A18; --panel: #1D2320; --ink: #E3E8E4; --muted: #97A29A;
+      --line: #313A35; --accent: #7FB8AC; --accent-ink: #9CCFC3;
+      --brass: #D2A557; --live: #D89285; --live-soft: #3A2521;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #161A18; --panel: #1D2320; --ink: #E3E8E4; --muted: #97A29A;
+    --line: #313A35; --accent: #7FB8AC; --accent-ink: #9CCFC3;
+    --brass: #D2A557; --live: #D89285; --live-soft: #3A2521;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--paper); color: var(--ink); font-family: "Public Sans", system-ui, sans-serif;
+         font-size: 16px; line-height: 1.6; margin: 0; padding: 0 20px 90px; }
+  .sheet { max-width: 860px; margin: 0 auto; }
+  h1, h2 { font-family: "Source Serif 4", Georgia, serif; text-wrap: balance; }
+  h1 { font-size: 2.1rem; margin: 0 0 8px; }
+  h2 { font-size: 1.3rem; margin: 0 0 4px; }
+  .eyebrow { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.72rem;
+             letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+  header { padding: 56px 0 24px; border-bottom: 2px solid var(--ink); }
+  header p.stand { max-width: 64ch; margin: 0; }
+  .frame { margin: 24px 0 0; padding: 12px 16px; background: var(--panel); border-left: 3px solid var(--accent); font-size: 0.9rem; max-width: 70ch; }
+  section { padding: 36px 0 6px; }
+  section + section { border-top: 1px solid var(--line); }
+  .secno { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.72rem; letter-spacing: 0.14em;
+           text-transform: uppercase; color: var(--accent-ink); margin: 0 0 6px; }
+  figure { margin: 18px 0 8px; }
+  .figwrap { overflow-x: auto; border: 1px solid var(--line); background: var(--panel); padding: 14px; }
+  svg { display: block; max-width: 100%; height: auto; color: var(--ink); }
+  figcaption { font-size: 0.85rem; color: var(--muted); margin-top: 10px; max-width: 70ch; }
+  p.note { color: var(--muted); font-size: 0.9rem; max-width: 66ch; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin-top: 16px; }
+  .card { border: 1px solid var(--line); background: var(--panel); padding: 14px 16px; }
+  .card .src { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.7rem; letter-spacing: 0.08em;
+               text-transform: uppercase; color: var(--muted); }
+  .card p { margin: 6px 0 0; font-size: 0.95rem; }
+  .card.livecard { border-color: var(--live); }
+  .card.livecard .src { color: var(--live); }
+  .when { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.8rem; color: var(--ink); font-weight: 500; }
+
+  .timeline { list-style: none; margin: 16px 0 0; padding: 0; }
+  .timeline li { display: grid; grid-template-columns: 96px 1fr; gap: 16px; padding: 8px 0; border-top: 1px solid var(--line); }
+  .timeline li:first-child { border-top: 0; }
+  .timeline .yr { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.8rem; color: var(--muted);
+                  font-variant-numeric: tabular-nums; padding-top: 2px; white-space: nowrap; }
+  .timeline .ev { font-size: 0.94rem; }
+  .timeline .quiet { color: var(--muted); font-style: italic; font-size: 0.85rem; }
+  .timeline .live-tag { display: inline-block; padding: 0 8px 1px; margin-left: 6px; background: var(--live-soft);
+                        color: var(--live); font-family: "IBM Plex Mono", ui-monospace, monospace;
+                        font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; border-radius: 2px; }
+  footer { margin-top: 48px; padding-top: 20px; border-top: 2px solid var(--ink); font-size: 0.88rem; color: var(--muted); }
+  footer p { max-width: 68ch; margin: 8px 0; }
+  @media (max-width: 560px) { .timeline li { grid-template-columns: 1fr; gap: 2px; } }
+</style>
+
+<div class="sheet">
+  <header>
+    <p class="eyebrow">Record map · Level A · compiled 27 Aug 2026</p>
+    <h1>Gordana Kotevski — the record, arranged</h1>
+    <p class="stand">The documented public record of the night of 24 November 1994 and the
+    thirty-two years since, laid out in space and time. Every element traces to the sourced case
+    file (<span style="font-family:'IBM Plex Mono',monospace;font-size:0.85em">casework/cases/gordana-kotevski/case-file.md</span>).</p>
+    <p class="frame"><b>What this is, and isn't.</b> This visual arranges what official sources say —
+    it adds nothing. No inference about who, no theory of the case. Where official artifacts disagree,
+    both versions are shown, unresolved. Geography is schematic, not to scale.</p>
+  </header>
+
+  <section>
+    <p class="secno">01 · The night, as the record gives it</p>
+    <h2>Thursday 24 November 1994, Charlestown</h2>
+    <figure>
+      <div class="figwrap">
+      <svg viewBox="0 0 900 208" role="img" aria-label="Sequence of the documented events: evening shopping at Charlestown Square with friends; leaves on foot toward her aunt's home on Powell Street; about 9pm on Powell Street witnesses hear a struggle with at least two males; a white utility is observed leaving; Gordana is never located.">
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <!-- time labels -->
+        <text x="90" y="26" text-anchor="middle" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--muted)">evening</text>
+        <text x="450" y="26" text-anchor="middle" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--muted)">~9:00 pm</text>
+        <text x="810" y="26" text-anchor="middle" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--muted)">after</text>
+
+        <!-- node 1 -->
+        <rect x="10" y="40" width="160" height="76" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        <text x="90" y="64" text-anchor="middle" font-size="12.5" font-weight="600" fill="currentColor">Charlestown Square</text>
+        <text x="90" y="82" text-anchor="middle" font-size="11.5" fill="currentColor">shopping with friends,</text>
+        <text x="90" y="97" text-anchor="middle" font-size="11.5" fill="currentColor">late-night trading</text>
+        <!-- arrow 1 -->
+        <line x1="170" y1="78" x2="240" y2="78" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)"/>
+        <text x="205" y="70" text-anchor="middle" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--muted)">on foot</text>
+
+        <!-- node 2 -->
+        <rect x="242" y="40" width="160" height="76" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        <text x="322" y="64" text-anchor="middle" font-size="12.5" font-weight="600" fill="currentColor">Toward Powell St</text>
+        <text x="322" y="82" text-anchor="middle" font-size="11.5" fill="currentColor">walking to her aunt's</text>
+        <text x="322" y="97" text-anchor="middle" font-size="11.5" fill="currentColor">home on the same road</text>
+        <!-- arrow 2 -->
+        <line x1="402" y1="78" x2="472" y2="78" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)"/>
+
+        <!-- node 3 (the event, accent) -->
+        <rect x="474" y="40" width="176" height="76" fill="none" stroke="var(--accent)" stroke-width="2"/>
+        <text x="562" y="60" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--accent)">Powell Street</text>
+        <text x="562" y="78" text-anchor="middle" font-size="11.5" fill="currentColor">forced into a vehicle;</text>
+        <text x="562" y="93" text-anchor="middle" font-size="11.5" fill="currentColor">witnesses hear a struggle,</text>
+        <text x="562" y="108" text-anchor="middle" font-size="11.5" fill="currentColor">at least two males</text>
+        <!-- arrow 3 -->
+        <line x1="650" y1="78" x2="720" y2="78" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)"/>
+        <text x="685" y="70" text-anchor="middle" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--muted)">leaves</text>
+
+        <!-- node 4 -->
+        <rect x="722" y="40" width="168" height="76" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        <text x="806" y="68" text-anchor="middle" font-size="12.5" font-weight="600" fill="currentColor">White utility</text>
+        <text x="806" y="86" text-anchor="middle" font-size="11.5" fill="currentColor">observed leaving the area</text>
+
+        <!-- outcome bar -->
+        <line x1="562" y1="116" x2="562" y2="152" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)"/>
+        <rect x="452" y="154" width="220" height="34" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 3"/>
+        <text x="562" y="176" text-anchor="middle" font-size="12" font-weight="600" fill="currentColor">never located</text>
+
+        <!-- source tags -->
+        <text x="10" y="203" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--muted)">sources: NSW Police reward page · NSW Police MPW release Aug 2020 · AFP NMPCC profile</text>
+      </svg>
+      </div>
+      <figcaption>The documented sequence. The 2003 inquest (Coroner Abernethy) found Gordana
+      deceased, most likely as a result of foul play. Her aged-16 walk was between two points on the
+      same street she was taken from — the record gives no times finer than "about 9pm".</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <p class="secno">02 · The vehicle, across official artifacts</p>
+    <h2>One vehicle, three descriptions — unreconciled</h2>
+    <div class="cards">
+      <div class="card"><span class="src">NSW Police reward page</span><p>"a white <b>ute</b> was observed leaving the area"</p></div>
+      <div class="card"><span class="src">AFP NMPCC profile</span><p>"a white <b>4WD</b> was seen in the area at the time"</p></div>
+      <div class="card"><span class="src">ABC News, 24 Nov 2023</span><p>police have previously examined a <b>white single-cab Toyota HiLux with a silver work tray</b></p></div>
+    </div>
+    <p class="note">The case file records this variance as DISPUTED — noted, not resolved. It is a
+    fact <em>about the record</em>, and a legitimate question for officials, not for us to settle.</p>
+  </section>
+
+  <section>
+    <p class="secno">03 · The two who knew</p>
+    <h2>Anonymous callers police are still seeking</h2>
+    <div class="cards">
+      <div class="card livecard"><span class="src">Live police ask · Jun 2026</span>
+        <p><span class="when">Mon 5 Dec 1994 · ~6:50pm</span><br>
+        A man telephoned <b>Newcastle Police Station</b> — eleven days after the abduction — giving
+        "specific information about a person's involvement in the matter".</p></div>
+      <div class="card livecard"><span class="src">Live police ask · Jun 2026</span>
+        <p><span class="when">Wed 18 Sep 1996 · ~9:25pm</span><br>
+        A man called radio station <b>KOFM Newcastle</b> and spoke with a presenter, likewise giving
+        specific information.</p></div>
+    </div>
+    <p class="note">What the record itself establishes: within eleven days, and again in 1996,
+    knowledge of a person's involvement existed in this community — held by at least two local men
+    who each chose a phone over silence, and anonymity over a name. Strike Force Bambil's 2026 appeal
+    asks them to come forward. That appeal — not any private theory — is the thread the public can
+    pull: <b>Crime Stoppers 1800 333 000</b>.</p>
+  </section>
+
+  <section>
+    <p class="secno">04 · Thirty-two years</p>
+    <h2>The long timeline</h2>
+    <ul class="timeline">
+      <li><span class="yr">24 Nov 1994</span><span class="ev">Abducted from Powell Street, Charlestown, aged 16.</span></li>
+      <li><span class="yr">5 Dec 1994</span><span class="ev">Anonymous call to Newcastle Police Station.</span></li>
+      <li><span class="yr">18 Sep 1996</span><span class="ev">Anonymous call to KOFM.</span></li>
+      <li><span class="yr">1996–2003</span><span class="quiet">— seven quiet years on the public record —</span></li>
+      <li><span class="yr">2003</span><span class="ev">Inquest: deceased, most likely foul play (State Coroner Abernethy).</span></li>
+      <li><span class="yr">2003–2019</span><span class="quiet">— sixteen years: a $100,000 reward (year unverified), otherwise quiet —</span></li>
+      <li><span class="yr">Apr 2019</span><span class="ev">Strike Force Arapaima re-examines this case with Hickie and Robinson (1979).</span></li>
+      <li><span class="yr">Aug 2020</span><span class="ev">National Missing Persons Week appeal, 25+ years on.</span></li>
+      <li><span class="yr">25 May 2022</span><span class="ev">Reward raised to $1,000,000; announced with her mother present.</span></li>
+      <li><span class="yr">Nov 2023</span><span class="ev">Remembrance graffiti in Newcastle CBD days before the 29th anniversary.</span></li>
+      <li><span class="yr">Early 2025</span><span class="ev">Strike Force Bambil formed with the NSW Crime Commission.<span class="live-tag">active</span></span></li>
+      <li><span class="yr">Jul 2025</span><span class="ev">26-metre community-funded mural unveiled at Cardiff Shopping Centre.</span></li>
+      <li><span class="yr">Apr 2026</span><span class="ev">Properties searched at Edgeworth and West Wallsend; items seized for forensics.<span class="live-tag">active</span></span></li>
+      <li><span class="yr">May 2026</span><span class="ev">Excavation reported underway at a Lake Macquarie site.<span class="live-tag">active</span></span></li>
+      <li><span class="yr">Jun 2026</span><span class="ev">Public appeal for the two anonymous callers.<span class="live-tag">active</span></span></li>
+      <li><span class="yr">24 Nov 2026</span><span class="ev">The 32nd anniversary — the next awareness anchor.</span></li>
+    </ul>
+    <p class="note">The pattern that <em>is</em> in the record: two long public silences (1996–2003,
+    2003–2019), then steady acceleration since 2019 — and more investigative movement in the last
+    eighteen months than in the previous twenty-four years.</p>
+  </section>
+
+  <section>
+    <p class="secno">05 · Places in the record</p>
+    <h2>Where the record touches the map</h2>
+    <figure>
+      <div class="figwrap">
+      <svg viewBox="0 0 900 175" role="img" aria-label="Schematic west-to-east strip of places named in the record: West Wallsend and Edgeworth, both searched in 2026; Cardiff, site of the 2025 mural; Charlestown, site of the 1994 abduction; Belmont, where the 2022 reward was announced. An excavation site on Lake Macquarie has no public location.">
+        <line x1="30" y1="90" x2="870" y2="90" stroke="currentColor" stroke-width="1.2"/>
+        <text x="30" y="72" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--muted)">W</text>
+        <text x="862" y="72" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--muted)">E</text>
+
+        <!-- West Wallsend -->
+        <circle cx="110" cy="90" r="5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="110" y="115" text-anchor="middle" font-size="12" font-weight="600" fill="currentColor">West Wallsend</text>
+        <text x="110" y="131" text-anchor="middle" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--live)">searched apr 2026</text>
+        <!-- Edgeworth -->
+        <circle cx="280" cy="90" r="5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="280" y="60" text-anchor="middle" font-size="12" font-weight="600" fill="currentColor">Edgeworth</text>
+        <text x="280" y="44" text-anchor="middle" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--live)">searched apr 2026</text>
+        <!-- Cardiff -->
+        <circle cx="450" cy="90" r="5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="450" y="115" text-anchor="middle" font-size="12" font-weight="600" fill="currentColor">Cardiff</text>
+        <text x="450" y="131" text-anchor="middle" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--muted)">mural · jul 2025</text>
+        <!-- Charlestown -->
+        <circle cx="640" cy="90" r="7" fill="var(--accent)"/>
+        <text x="640" y="60" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--accent)">Charlestown</text>
+        <text x="640" y="44" text-anchor="middle" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--muted)">abduction · 24 nov 1994</text>
+        <!-- Belmont -->
+        <circle cx="820" cy="90" r="5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="820" y="115" text-anchor="middle" font-size="12" font-weight="600" fill="currentColor">Belmont</text>
+        <text x="820" y="131" text-anchor="middle" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--muted)">reward announced 2022</text>
+
+        <text x="30" y="165" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--muted)">schematic — approximate relative positions, not to scale · excavation site (may 2026): "a Lake Macquarie site", location not public</text>
+      </svg>
+      </div>
+      <figcaption>Every place the sourced record names, on one west–east line. The 2026 search
+      activity sits west of Charlestown; the record does not say why, and neither does this page.</figcaption>
+    </figure>
+  </section>
+
+  <footer>
+    <p><b>Rules this page was drawn under.</b> Public record only; both versions shown where sources
+    disagree; no inference about any person; nothing here identifies or implies a person of interest.
+    Analysis beyond arrangement of the record is Level B work and waits on the family.</p>
+    <p><b>If you know something</b> — including if you are one of the two callers:
+    <b>Crime Stoppers 1800 333 000</b> · nsw.crimestoppers.com.au · $1,000,000 reward standing.</p>
+  </footer>
+</div>
