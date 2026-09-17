@@ -87,17 +87,23 @@
   .score-line{font-size:clamp(20px,5vw,26px);}
   .hint{font-size:clamp(14px,3.4vw,17px); opacity:.55;}
 
-  #touch{position:absolute; inset:0; display:none;}
-  #touch .half{position:absolute; top:0; bottom:0; width:50%;}
-  #touch .l{left:0;} #touch .r{right:0;}
-  #touch .boost{
-    position:absolute; left:50%; bottom:calc(20px + env(safe-area-inset-bottom,0));
-    transform:translateX(-50%); border:3px solid var(--hud-line);
-    background:rgba(255,255,255,.55); color:var(--ink);
-    padding:9px 20px; font-family:"VT323",monospace; font-size:20px;
+  #pad{
+    position:absolute; left:0; right:0; z-index:5;
+    bottom:calc(16px + env(safe-area-inset-bottom,0));
+    display:flex; justify-content:space-between; align-items:flex-end;
+    padding:0 16px; box-sizing:border-box; pointer-events:none;
   }
-  body.touch #touch{display:block;}
-  body.saver #touch{display:none;}
+  #pad[hidden]{display:none!important;}
+  .pad-btn{
+    pointer-events:auto; touch-action:none; -webkit-user-select:none; user-select:none;
+    font-family:"VT323",monospace; color:var(--ink); background:var(--hud-bg);
+    opacity:.85; border:3px solid var(--hud-line); box-shadow:3px 3px 0 var(--hud-line);
+    width:84px; height:84px; font-size:40px; line-height:1; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .pad-btn.tuck{ width:auto; min-width:96px; height:60px; font-size:26px; letter-spacing:1px; align-self:center; }
+  .pad-btn:active{ transform:translate(2px,2px); box-shadow:1px 1px 0 var(--hud-line); opacity:.97; }
+  @media (min-width:760px){ .pad-btn{ opacity:.55; } }
   @media (prefers-reduced-motion: reduce){ button.play{transition:none;} }
 </style>
 
@@ -105,9 +111,10 @@
   <div id="stage">
     <canvas id="c"></canvas>
 
-    <div id="touch" aria-hidden="true">
-      <div class="half l"></div><div class="half r"></div>
-      <div class="boost">TUCK</div>
+    <div id="pad" hidden>
+      <button class="pad-btn" id="padLeft" aria-label="Steer left">&#9664;</button>
+      <button class="pad-btn tuck" id="padTuck" aria-label="Tuck and go fast">TUCK</button>
+      <button class="pad-btn" id="padRight" aria-label="Steer right">&#9654;</button>
     </div>
 
     <div id="start" class="overlay">
@@ -340,28 +347,26 @@
     sk.dir=clamp(sk.dir+d,0,DIRS-1);
   }
 
-  const touch=document.getElementById('touch');
-  function bindHalf(el,side){
+  const pad=document.getElementById('pad');
+  function bindSteer(el,side){
     let held=false,timer=null;
-    const start=e=>{ e.preventDefault();
-      if(saver&&state==='saver'){ stopSaver(); return; }
-      if(state!=='run'){ startOrRestart(); return; }
-      held=true; carve(side); rep(); };
-    const end=()=>{held=false; if(timer)clearTimeout(timer);};
-    function rep(){ if(!held)return; timer=setTimeout(()=>{carve(side);rep();},130); }
-    el.addEventListener('touchstart',start,{passive:false});
-    el.addEventListener('touchend',end); el.addEventListener('touchcancel',end);
-    el.addEventListener('mousedown',start); window.addEventListener('mouseup',end);
+    const down=e=>{ e.preventDefault(); if(state!=='run') return; held=true; carve(side); rep(); };
+    const up=e=>{ if(e&&e.cancelable) e.preventDefault(); held=false; if(timer){clearTimeout(timer); timer=null;} };
+    function rep(){ if(!held) return; timer=setTimeout(()=>{ carve(side); rep(); },130); }
+    el.addEventListener('pointerdown',down);
+    el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up); el.addEventListener('pointerleave',up);
   }
-  bindHalf(touch.querySelector('.l'),-1); bindHalf(touch.querySelector('.r'),1);
-  (function(){
-    const b=touch.querySelector('.boost');
-    const on=e=>{e.preventDefault(); keys.tuck=true; keys.boost=true;};
-    const off=()=>{keys.tuck=false; keys.boost=false;};
-    b.addEventListener('touchstart',on,{passive:false});
-    b.addEventListener('touchend',off); b.addEventListener('touchcancel',off);
-    b.addEventListener('mousedown',on); window.addEventListener('mouseup',off);
-  })();
+  function bindTuck(el){
+    const down=e=>{ e.preventDefault(); keys.tuck=true; };
+    const up=e=>{ if(e&&e.cancelable) e.preventDefault(); keys.tuck=false; };
+    el.addEventListener('pointerdown',down);
+    el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up); el.addEventListener('pointerleave',up);
+  }
+  bindSteer(document.getElementById('padLeft'),-1);
+  bindSteer(document.getElementById('padRight'),1);
+  bindTuck(document.getElementById('padTuck'));
+  // tap anywhere to leave the screensaver
+  stage.addEventListener('pointerdown',()=>{ if(saver&&state==='saver') stopSaver(); });
 
   // ---------- autopilot (screensaver) ----------
   function autoPilot(dt){
@@ -456,7 +461,7 @@
   }
 
   function die(title, eaten){
-    state='dead';
+    state='dead'; pad.hidden=true;
     const score=Math.round(dist)+style;
     if(score>best){ best=score; try{localStorage.setItem('slopepanic_best',String(best));}catch(e){} }
     document.getElementById('overTitle').textContent=title;
@@ -629,17 +634,17 @@
   const startO=document.getElementById('start'), overO=document.getElementById('over');
   function startOrRestart(){
     saver=false; document.body.classList.remove('saver');
-    startO.hidden=true; overO.hidden=true;
+    startO.hidden=true; overO.hidden=true; pad.hidden=false;
     reset(); state='run'; last=performance.now();
   }
   function startSaver(){
     saver=true; document.body.classList.add('saver');
-    startO.hidden=true; overO.hidden=true;
+    startO.hidden=true; overO.hidden=true; pad.hidden=true;
     reset(); state='saver'; saverTime=0; last=performance.now();
   }
   function stopSaver(){
     saver=false; document.body.classList.remove('saver');
-    state='ready'; startO.hidden=false;
+    state='ready'; startO.hidden=false; pad.hidden=true;
   }
   document.getElementById('startBtn').addEventListener('click',startOrRestart);
   document.getElementById('againBtn').addEventListener('click',startOrRestart);
