@@ -1,0 +1,25 @@
+{
+  "name": "Slope Panic",
+  "short_name": "Slope Panic",
+  "description": "A SkiFree tribute — outski the Abominable Snow Monster.",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0e1730",
+  "theme_color": "#0e1730",
+  "start_url": "./",
+  "scope": "./",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ]
+}

@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Slope Panic</title>
+<meta name="description" content="A SkiFree tribute — ski an endless slope, dodge the trees and outrun the Abominable Snow Monster.">
+<meta name="theme-color" content="#0e1730">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Slope Panic">
+<style>html{height:100%;background:#0e1730;-webkit-text-size-adjust:100%;}</style>
+</head>
+<body>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+  :root{
+    --snow:#ffffff; --snow-2:#e9eef3; --ink:#101418;
+    --hud-bg:#ffffff; --hud-line:#101418; --accent:#d23b3b;
+    --ovl:rgba(255,255,255,.9); --shadow:rgba(24,40,66,.10);
+  }
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--snow); color:var(--ink);
+    font-family:"VT323","Courier New",monospace;
+    overflow:hidden; -webkit-user-select:none; user-select:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #wrap{
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0); box-sizing:border-box;
+  }
+  #stage{
+    position:relative; width:100%; height:100%;
+    max-width:760px; max-height:1040px;
+    box-shadow:0 10px 40px var(--shadow); background:var(--snow);
+  }
+  canvas{display:block; width:100%; height:100%; image-rendering:pixelated;}
+
+  .overlay{
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center; gap:16px;
+    padding:24px; box-sizing:border-box; background:var(--ovl); backdrop-filter:blur(2px);
+  }
+  .overlay[hidden]{display:none!important;}
+  h1{
+    font-family:"VT323",monospace; font-size:clamp(44px,11vw,84px);
+    line-height:.9; margin:0; letter-spacing:2px; color:var(--ink); text-wrap:balance;
+  }
+  h1 .m{color:var(--accent);}
+  .tag{font-size:clamp(18px,4.5vw,24px); opacity:.7; margin-top:-4px;}
+  .card{
+    background:var(--hud-bg); border:3px solid var(--hud-line);
+    padding:14px 18px; max-width:440px; width:100%; box-sizing:border-box;
+    font-size:clamp(16px,4.2vw,20px); line-height:1.45; text-align:left;
+  }
+  .card b{color:var(--accent);}
+  .keys{display:grid; grid-template-columns:auto 1fr; gap:5px 14px; margin:8px 0 0;}
+  .keys .k{
+    display:inline-block; min-width:1.3em; text-align:center;
+    border:2px solid var(--hud-line); padding:0 6px; background:var(--snow-2); color:var(--ink);
+  }
+  .lbl{font-size:clamp(14px,3.4vw,16px); letter-spacing:2px; text-transform:uppercase; opacity:.6;}
+  #themes{display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:440px;}
+  .sw{
+    width:46px; height:34px; border:3px solid var(--hud-line); cursor:pointer;
+    position:relative; padding:0; display:flex; align-items:flex-end; justify-content:flex-end;
+  }
+  .sw .dot{width:11px; height:11px; margin:3px; border-radius:50%;}
+  .sw[aria-pressed="true"]{outline:3px solid var(--accent); outline-offset:2px;}
+  .btnrow{display:flex; gap:12px; flex-wrap:wrap; justify-content:center;}
+  button.play{
+    font-family:"VT323",monospace; font-size:clamp(22px,5.5vw,28px); letter-spacing:1px;
+    padding:9px 26px; color:#fff; background:var(--accent); border:3px solid var(--hud-line);
+    cursor:pointer; box-shadow:4px 4px 0 var(--hud-line);
+  }
+  button.ghost{ background:var(--hud-bg); color:var(--ink); }
+  button.play:hover{transform:translate(-1px,-1px); box-shadow:5px 5px 0 var(--hud-line);}
+  button.play:active{transform:translate(2px,2px); box-shadow:2px 2px 0 var(--hud-line);}
+  button.play:focus-visible{outline:3px solid var(--accent); outline-offset:3px;}
+  .big{font-size:clamp(30px,8vw,46px); color:var(--accent);}
+  .score-line{font-size:clamp(20px,5vw,26px);}
+  .hint{font-size:clamp(14px,3.4vw,17px); opacity:.55;}
+
+  #touch{position:absolute; inset:0; display:none;}
+  #touch .half{position:absolute; top:0; bottom:0; width:50%;}
+  #touch .l{left:0;} #touch .r{right:0;}
+  #touch .boost{
+    position:absolute; left:50%; bottom:calc(20px + env(safe-area-inset-bottom,0));
+    transform:translateX(-50%); border:3px solid var(--hud-line);
+    background:rgba(255,255,255,.55); color:var(--ink);
+    padding:9px 20px; font-family:"VT323",monospace; font-size:20px;
+  }
+  body.touch #touch{display:block;}
+  body.saver #touch{display:none;}
+  @media (prefers-reduced-motion: reduce){ button.play{transition:none;} }
+</style>
+
+<div id="wrap">
+  <div id="stage">
+    <canvas id="c"></canvas>
+
+    <div id="touch" aria-hidden="true">
+      <div class="half l"></div><div class="half r"></div>
+      <div class="boost">TUCK</div>
+    </div>
+
+    <div id="start" class="overlay">
+      <h1>SLOPE&nbsp;<span class="m">PANIC</span></h1>
+      <div class="tag">a ski free tribute</div>
+      <div class="card">
+        Bomb down an endless slope. Dodge trees, rocks &amp; other skiers, grab
+        <b>ramps</b> for big-air style (flip in the air for more!). Past
+        <b>2000m</b> the <b>Abominable Snow Monster</b> wakes up — tuck and go
+        <b>fast</b> to outrun it, just like the old days.
+        <div class="keys">
+          <span><span class="k">◄</span> <span class="k">►</span></span><span>steer / carve · flip in the air</span>
+          <span><span class="k">▼</span> <span class="k">F</span></span><span>tuck &amp; go fast (escape the yeti)</span>
+          <span><span class="k">Space</span></span><span>speed burst</span>
+        </div>
+      </div>
+      <div class="lbl">colour</div>
+      <div id="themes"></div>
+      <div class="btnrow">
+        <button class="play" id="startBtn">DROP IN ►</button>
+        <button class="play ghost" id="saverBtn">SCREENSAVER</button>
+      </div>
+      <div class="hint">Point straight down = fastest = scariest.</div>
+    </div>
+
+    <div id="over" class="overlay" hidden>
+      <h1 id="overTitle">WIPEOUT</h1>
+      <div class="card score-line">
+        Distance <b><span id="finalDist">0</span> m</b><br>
+        Time <b><span id="finalTime">0</span> s</b><br>
+        Style <b><span id="finalStyle">0</span></b>
+        <div class="big" id="finalScore">0</div>
+        <div class="hint" id="bestLine"></div>
+      </div>
+      <button class="play" id="againBtn">AGAIN ►</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const stage = document.getElementById('stage');
+
+  // ---------- colour themes ----------
+  const THEMES = {
+    classic:{ name:'Classic', bg:'#ffffff', tex:'#e9eef3', flake:'#dfe7ef',
+      treeA:'#1f7a34', treeB:'#2f9a4a', trunk:'#6a4a2b',
+      rockA:'#8a8f96', rockB:'#b3b8be', rockC:'#63676d',
+      mogul:'#e8eef4', mogulLine:'#cdd7e2', ramp:'#d5dee7', rampLine:'#b7c3d0',
+      hat:'#d23b3b', pom:'#ffffff', coat:'#2f6fd6', pants:'#26324a', face:'#e8c9a0', glove:'#555',
+      monster:'#9aa1a8', monsterDark:'#7d858d', monsterFur:'#f2f4f6', mouth:'#c0392b',
+      dogA:'#7a4a22', dogB:'#5f3a1a', boarder:'#e08a1e', skier2:'#3aa564',
+      hudBg:'#ffffff', hudInk:'#101418', text:'#101418', accent:'#d23b3b' },
+    night:{ name:'Night', bg:'#0e1730', tex:'#182647', flake:'#ffffff',
+      treeA:'#1f6a44', treeB:'#2f9a63', trunk:'#3a2c1e',
+      rockA:'#46506e', rockB:'#626e92', rockC:'#2c3450',
+      mogul:'#16223f', mogulLine:'#2a3a63', ramp:'#1e2b4d', rampLine:'#33447a',
+      hat:'#ff5a5a', pom:'#ffffff', coat:'#4d8be0', pants:'#dbe6ff', face:'#f0d0a8', glove:'#9fb0d8',
+      monster:'#d3d9e8', monsterDark:'#a6b0c8', monsterFur:'#ffffff', mouth:'#ff5a5a',
+      dogA:'#8a6a3a', dogB:'#6a4f28', boarder:'#ffb04a', skier2:'#57d08a',
+      hudBg:'#16223f', hudInk:'#eaf1ff', text:'#eaf1ff', accent:'#7fd0ff' },
+    sunset:{ name:'Sunset', bg:'#ffe6cf', tex:'#ffd3b0', flake:'#ffcaa0',
+      treeA:'#2f6a4a', treeB:'#3f8a5f', trunk:'#6a4a2b',
+      rockA:'#9a877a', rockB:'#c2b0a0', rockC:'#6f5c50',
+      mogul:'#ffdcc0', mogulLine:'#f2c2a0', ramp:'#ffd0b0', rampLine:'#eab48f',
+      hat:'#b02a1a', pom:'#fff2e8', coat:'#7d3cc0', pants:'#3a2a52', face:'#f6cfa8', glove:'#6a4a4a',
+      monster:'#b7a79c', monsterDark:'#8f7f74', monsterFur:'#fff2e8', mouth:'#8a1f10',
+      dogA:'#7a4a22', dogB:'#5f3a1a', boarder:'#d24a1a', skier2:'#2f9a6a',
+      hudBg:'#fff3e8', hudInk:'#5a2a12', text:'#5a2a12', accent:'#ff6a2a' },
+    phosphor:{ name:'Phosphor', bg:'#04180a', tex:'#0a2a12', flake:'#29c23f',
+      treeA:'#1f8a2f', treeB:'#35d24a', trunk:'#146022',
+      rockA:'#157a26', rockB:'#2fbf40', rockC:'#0d5018',
+      mogul:'#0a2a12', mogulLine:'#1f8a2f', ramp:'#0d3a18', rampLine:'#2fbf40',
+      hat:'#7dff8a', pom:'#d6ffda', coat:'#29c23f', pants:'#0d5018', face:'#a6ffb0', glove:'#35d24a',
+      monster:'#7dff8a', monsterDark:'#29c23f', monsterFur:'#d6ffda', mouth:'#04180a',
+      dogA:'#29c23f', dogB:'#1f8a2f', boarder:'#7dff8a', skier2:'#35d24a',
+      hudBg:'#04180a', hudInk:'#35d24a', text:'#35d24a', accent:'#7dff8a' },
+    candy:{ name:'Candy', bg:'#fdeef6', tex:'#fbdcec', flake:'#ffc0e0',
+      treeA:'#12a596', treeB:'#2fe0cf', trunk:'#8a5a6a',
+      rockA:'#b48fae', rockB:'#d8b9d0', rockC:'#8a6a86',
+      mogul:'#fbe0ef', mogulLine:'#f2c2df', ramp:'#ffd0ec', rampLine:'#f2a8d6',
+      hat:'#ff3d81', pom:'#ffffff', coat:'#7b5cff', pants:'#3a2a6a', face:'#ffd9c0', glove:'#9a6a8a',
+      monster:'#c9a8d8', monsterDark:'#a67fc0', monsterFur:'#ffffff', mouth:'#ff3d81',
+      dogA:'#c07a9a', dogB:'#a05a7a', boarder:'#ff8a3d', skier2:'#12a596',
+      hudBg:'#ffffff', hudInk:'#5a1a3a', text:'#5a1a3a', accent:'#ff3d81' },
+  };
+  let P = THEMES.classic, themeName = 'classic';
+
+  function hexToRgba(hex, a){
+    const n = parseInt(hex.slice(1),16);
+    return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';
+  }
+  function applyThemeVars(){
+    const r = document.documentElement.style;
+    r.setProperty('--snow', P.bg);   r.setProperty('--snow-2', P.tex);
+    r.setProperty('--ink', P.text);  r.setProperty('--hud-bg', P.hudBg);
+    r.setProperty('--hud-line', P.hudInk); r.setProperty('--accent', P.accent);
+    r.setProperty('--ovl', hexToRgba(P.bg, .9));
+  }
+  function setTheme(name){
+    if(!THEMES[name]) name='classic';
+    themeName = name; P = THEMES[name];
+    applyThemeVars();
+    document.querySelectorAll('.sw').forEach(b=> b.setAttribute('aria-pressed', b.dataset.t===name));
+    try{ localStorage.setItem('slopepanic_theme', name); }catch(e){}
+  }
+
+  // ---------- crisp scaling ----------
+  let W=0, H=0, DPR=1;
+  function resize(){
+    const r = stage.getBoundingClientRect();
+    DPR = Math.min(window.devicePixelRatio||1, 2);
+    W=r.width; H=r.height;
+    canvas.width=Math.round(W*DPR); canvas.height=Math.round(H*DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0); ctx.imageSmoothingEnabled=false;
+  }
+  window.addEventListener('resize', resize); resize();
+
+  if(matchMedia('(pointer:coarse)').matches) document.body.classList.add('touch');
+
+  const rand=(a,b)=>a+Math.random()*(b-a);
+  const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- config ----------
+  const DIRS=7, DIR_ANGLE=[-1.35,-0.95,-0.5,0,0.5,0.95,1.35];
+  const YETI_DIST=2000, PPM=7, YETI_SPEED=250;
+
+  let state, cam, sk, obstacles, movers, moverTimer, yeti;
+  let elapsed, dist, style, best=0, shake=0, boostCd=0, seedY=0;
+  let saver=false, hudOff=false, saverTime=0, autoTimer=0;
+
+  try{ best=parseInt(localStorage.getItem('slopepanic_best')||'0',10)||0; }catch(e){}
+  const keys={left:false,right:false,tuck:false,boost:false};
+
+  function reset(){
+    state='ready';
+    sk={ wx:0, wy:0, dir:3, air:0, airMax:0, spin:0, trick:0, crash:0, hop:0 };
+    cam=0; obstacles=[]; movers=[]; moverTimer=2.0; yeti=null;
+    elapsed=0; dist=0; style=0; shake=0; boostCd=0; autoTimer=0;
+    seedY=-H;
+    seedField(sk.wy - H*0.5, sk.wy + H*1.5);
+  }
+
+  const anchorX=()=>W*0.5, anchorY=()=>H*0.36;
+  const sx=wx=>anchorX()+(wx-sk.wx), sy=wy=>anchorY()+(wy-sk.wy);
+
+  // ---------- field ----------
+  const TYPES=['tree','tree','tree','pine2','rock','rock','mogul','mogul','ramp','stump'];
+  function seedField(fromY,toY){
+    const metres=((fromY+toY)/2)/PPM;
+    const grace=clamp((metres-40)/160,0,1);
+    const ramp=clamp(metres/2600,0,1);
+    const density=(0.00016+0.00018*ramp)*(0.35+0.65*grace);
+    const n=Math.max(0,Math.round((toY-fromY)*(W*2.2)*density));
+    for(let i=0;i<n;i++){
+      obstacles.push({ type:TYPES[(Math.random()*TYPES.length)|0],
+        wx:sk.wx+rand(-W*1.1,W*1.1), wy:rand(fromY,toY) });
+    }
+  }
+  function tickField(){
+    const ahead=sk.wy+H*1.6;
+    if(ahead>seedY){ seedField(seedY,ahead); seedY=ahead; }
+    if(obstacles.length>420) obstacles=obstacles.filter(o=>o.wy>sk.wy-H*0.8-40);
+  }
+
+  // ---------- movers ----------
+  function spawnMover(){
+    if(Math.random()<0.34){
+      const fromLeft=Math.random()<0.5;
+      movers.push({ kind:'dog', wx:sk.wx+(fromLeft?-W*0.6:W*0.6),
+        wy:sk.wy+rand(-H*0.15,H*0.55), vx:(fromLeft?1:-1)*rand(70,105),
+        vy:rand(15,55), t:0, life:rand(3.5,6) });
+    } else {
+      movers.push({ kind:Math.random()<0.5?'boarder':'skier2',
+        wx:sk.wx+rand(-W*0.8,W*0.8), wy:sk.wy+rand(H*0.9,H*1.5),
+        vx:rand(-70,70), vy:rand(150,205), t:0, life:999 });
+    }
+  }
+  function tickMovers(dt){
+    moverTimer-=dt;
+    if(moverTimer<=0){ spawnMover(); moverTimer=rand(1.6,3.4); }
+    for(const m of movers){
+      m.t+=dt; m.wx+=m.vx*dt; m.wy+=m.vy*dt;
+      if((m.kind==='boarder'||m.kind==='skier2')&&Math.random()<0.012) m.vx=rand(-85,85);
+    }
+    movers=movers.filter(m=> m.wy>sk.wy-H*0.9 && m.wy<sk.wy+H*2.4 && (m.kind!=='dog'||m.t<m.life));
+    if(sk.air<=0 && sk.crash<=0 && !saver){
+      for(const m of movers){
+        if(m.kind==='dog') continue;
+        if(Math.abs(m.wx-sk.wx)<10 && Math.abs(m.wy-sk.wy)<10){
+          sk.crash=1.15; shake=reduceMotion?4:16; style=Math.max(0,style-40); break;
+        }
+      }
+    }
+  }
+
+  const HIT={ tree:{w:11,h:8}, pine2:{w:13,h:9}, rock:{w:13,h:7},
+    stump:{w:9,h:6}, mogul:{w:16,h:8}, ramp:{w:20,h:9} };
+
+  // ---------- input ----------
+  function press(k,on){
+    if(k==='ArrowLeft'||k==='a'||k==='A') keys.left=on;
+    else if(k==='ArrowRight'||k==='d'||k==='D') keys.right=on;
+    else if(k==='ArrowDown'||k==='s'||k==='S'||k==='f'||k==='F') keys.tuck=on;
+    else if(k===' '||k==='Spacebar') keys.boost=on;
+    else return false;
+    return true;
+  }
+  window.addEventListener('keydown', e=>{
+    if(saver && state==='saver'){ stopSaver(); return; }
+    if(e.repeat){ if(press(e.key,true)) e.preventDefault(); return; }
+    if(press(e.key,true)){
+      e.preventDefault();
+      if(state==='run'){
+        if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') carve(-1);
+        if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') carve(1);
+      }
+    }
+    if((e.key==='Enter'||e.key===' ') && (state==='ready'||state==='dead')) startOrRestart();
+  });
+  window.addEventListener('keyup', e=>{ if(press(e.key,false)) e.preventDefault(); });
+
+  function carve(d){
+    if(sk.crash>0) return;
+    if(sk.air>0){ sk.spin += d*Math.PI*0.5; sk.trick += 25; return; } // mid-air flip
+    sk.dir=clamp(sk.dir+d,0,DIRS-1);
+  }
+
+  const touch=document.getElementById('touch');
+  function bindHalf(el,side){
+    let held=false,timer=null;
+    const start=e=>{ e.preventDefault();
+      if(saver&&state==='saver'){ stopSaver(); return; }
+      if(state!=='run'){ startOrRestart(); return; }
+      held=true; carve(side); rep(); };
+    const end=()=>{held=false; if(timer)clearTimeout(timer);};
+    function rep(){ if(!held)return; timer=setTimeout(()=>{carve(side);rep();},130); }
+    el.addEventListener('touchstart',start,{passive:false});
+    el.addEventListener('touchend',end); el.addEventListener('touchcancel',end);
+    el.addEventListener('mousedown',start); window.addEventListener('mouseup',end);
+  }
+  bindHalf(touch.querySelector('.l'),-1); bindHalf(touch.querySelector('.r'),1);
+  (function(){
+    const b=touch.querySelector('.boost');
+    const on=e=>{e.preventDefault(); keys.tuck=true; keys.boost=true;};
+    const off=()=>{keys.tuck=false; keys.boost=false;};
+    b.addEventListener('touchstart',on,{passive:false});
+    b.addEventListener('touchend',off); b.addEventListener('touchcancel',off);
+    b.addEventListener('mousedown',on); window.addEventListener('mouseup',off);
+  })();
+
+  // ---------- autopilot (screensaver) ----------
+  function autoPilot(dt){
+    keys.tuck=true;                       // always cruising fast
+    autoTimer-=dt;
+    if(autoTimer>0) return;
+    autoTimer=0.11;
+    let danger=null,dmin=1e9;
+    const scan=(x,y,skip)=>{
+      const dy=y-sk.wy, dx=x-sk.wx;
+      if(skip) return;
+      if(dy>16 && dy<160 && Math.abs(dx)<44){ const d=dy+Math.abs(dx)*1.4;
+        if(d<dmin){dmin=d;danger=dx;} }
+    };
+    for(const o of obstacles) scan(o.wx,o.wy, o.type==='ramp'||o.type==='mogul');
+    for(const m of movers) scan(m.wx,m.wy, m.kind==='dog');
+    let want=sk.dir;
+    if(danger!==null){ want += danger>0 ? -1 : 1; }
+    else { if(sk.wx>70) want-=1; else if(sk.wx<-70) want+=1;
+           else want += (sk.dir<3?1:(sk.dir>3?-1:0)); }
+    want=clamp(want,1,5);
+    if(want<sk.dir) sk.dir--; else if(want>sk.dir) sk.dir++;
+  }
+
+  // ---------- loop ----------
+  let last=performance.now();
+  function frame(now){
+    let dt=(now-last)/1000; last=now; dt=Math.min(dt,0.05);
+    if(state==='run'||state==='caught'||state==='saver') update(dt);
+    render();
+    requestAnimationFrame(frame);
+  }
+
+  function update(dt){
+    if(state==='run'||state==='saver'){
+      elapsed+=dt;
+      if(state==='saver'){ saverTime+=dt; autoPilot(dt); }
+
+      const angle=DIR_ANGLE[sk.dir], straight=Math.cos(angle);
+      let base=200; if(keys.tuck) base+=80;
+      boostCd=Math.max(0,boostCd-dt);
+      let boost=0;
+      if(keys.boost && boostCd<=0 && sk.crash<=0){ boost=140; }
+      let speed=(base+boost)*(0.30+0.70*straight);
+      if(sk.crash>0){ sk.crash-=dt; speed*=0.05; if(sk.crash<=0) sk.dir=3; }
+      let vy=speed;
+      let vx=Math.sin(angle)*(base*0.9)*(sk.crash>0?0.05:1);
+
+      if(sk.air>0){
+        sk.air-=dt;
+        const prog=1-Math.max(0,sk.air)/(sk.airMax||0.7);
+        sk.hop=Math.sin(prog*Math.PI)*(sk.airMax>0.5?34:16);
+        if(sk.air<=0){
+          sk.hop=0;
+          style+=Math.round(sk.airMax*(sk.airMax>0.5?180:55))+(sk.trick||0);
+          sk.airMax=0; sk.spin=0; sk.trick=0;
+        }
+      }
+      sk.wx+=vx*dt; sk.wy+=vy*dt; dist=sk.wy/PPM;
+      tickField(); tickMovers(dt); checkHits(); updateYeti(dt);
+      shake=Math.max(0,shake-dt*40);
+    } else if(state==='caught'){
+      yeti.eat+=dt; shake=Math.max(0,shake-dt*30);
+      if(yeti.eat>1.4) die('CHOMP', true);
+    }
+  }
+
+  function checkHits(){
+    if(sk.air>0) return;
+    for(const o of obstacles){
+      const dy=o.wy-sk.wy; if(dy<-6||dy>14) continue;
+      const h=HIT[o.type]; if(!h) continue;
+      if(Math.abs(o.wx-sk.wx)<h.w && Math.abs(dy)<h.h){
+        if(o.type==='ramp'){ if(sk.air<=0){ sk.air=0.9; sk.airMax=0.9; } }
+        else if(o.type==='mogul'){ if(sk.air<=0){ sk.air=0.34; sk.airMax=0.34; } }
+        else if(!saver){ if(sk.crash<=0){ sk.crash=1.15; shake=reduceMotion?4:16; style=Math.max(0,style-40); } }
+      }
+    }
+  }
+
+  function updateYeti(dt){
+    if(dist<YETI_DIST) return;
+    if(!yeti){
+      if(saver && Math.random()>0.004) return;   // occasional dramatic appearance
+      yeti={ wx:sk.wx+rand(-60,60), wy:sk.wy-H*0.55, t:0, eat:0, step:0 };
+    }
+    yeti.t+=dt; yeti.step+=dt;
+    let dx=sk.wx-yeti.wx, dy=sk.wy-yeti.wy; const d=Math.hypot(dx,dy)||1;
+    yeti.wx+=(dx/d)*YETI_SPEED*dt; yeti.wy+=(dy/d)*YETI_SPEED*dt;
+    if(saver){ if(dy < -H*0.8) yeti=null; return; }   // never eats in screensaver
+    if(d<20 && sk.air<=0){ state='caught'; yeti.eat=0; yeti.wx=sk.wx; yeti.wy=sk.wy-2; shake=reduceMotion?4:14; }
+  }
+
+  function die(title, eaten){
+    state='dead';
+    const score=Math.round(dist)+style;
+    if(score>best){ best=score; try{localStorage.setItem('slopepanic_best',String(best));}catch(e){} }
+    document.getElementById('overTitle').textContent=title;
+    document.getElementById('finalDist').textContent=Math.round(dist).toLocaleString();
+    document.getElementById('finalTime').textContent=elapsed.toFixed(1);
+    document.getElementById('finalStyle').textContent=style.toLocaleString();
+    document.getElementById('finalScore').textContent=score.toLocaleString();
+    document.getElementById('bestLine').textContent='best  '+best.toLocaleString();
+    document.getElementById('over').hidden=false;
+  }
+
+  // ---------- render ----------
+  function render(){
+    let ox=0,oy=0; if(shake>0){ ox=rand(-shake,shake); oy=rand(-shake,shake); }
+    ctx.save(); ctx.translate(ox,oy);
+    ctx.fillStyle=P.bg; ctx.fillRect(-20,-20,W+40,H+40);
+    drawSnow();
+
+    const list=[];
+    for(const o of obstacles){ const Y=sy(o.wy); if(Y>-60&&Y<H+60) list.push({wy:o.wy,k:'obs',o}); }
+    for(const m of movers){ const Y=sy(m.wy); if(Y>-60&&Y<H+60) list.push({wy:m.wy,k:'mov',o:m}); }
+    if(yeti) list.push({wy:yeti.wy,k:'yeti'});
+    list.push({wy:sk.wy,k:'sk'});
+    list.sort((a,b)=>a.wy-b.wy);
+    for(const d of list){
+      if(d.k==='obs') drawObstacle(d.o);
+      else if(d.k==='mov') drawMover(d.o);
+      else if(d.k==='yeti') drawYeti();
+      else drawSkier();
+    }
+    ctx.restore();
+    if(!hudOff && (state==='run'||state==='caught')) drawHUD();
+    if(state==='saver' && !hudOff) drawSaverHint();
+  }
+
+  let snowDots=null;
+  function drawSnow(){
+    if(!snowDots){ snowDots=[]; for(let i=0;i<70;i++) snowDots.push({x:Math.random(),y:Math.random(),r:Math.random()<.5?1:2}); }
+    ctx.fillStyle=P.flake;
+    const oy=(sk.wy*0.6)%H;
+    for(const d of snowDots){ let py=(d.y*H-oy); py=((py%H)+H)%H; ctx.fillRect((d.x*W)|0,py|0,d.r,d.r); }
+  }
+
+  function px(x,y,w,h,col){ ctx.fillStyle=col; ctx.fillRect(Math.round(x),Math.round(y),w,h); }
+  function tri(cx,topY,hw,h){ ctx.beginPath(); ctx.moveTo(cx,topY); ctx.lineTo(cx-hw,topY+h); ctx.lineTo(cx+hw,topY+h); ctx.closePath(); ctx.fill(); }
+  function blob(cx,cy,w,h){ ctx.beginPath(); ctx.ellipse(cx,cy,w/2,h/2,0,0,Math.PI*2); ctx.fill(); }
+  function seg(x1,y1,x2,y2){ ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); }
+
+  function drawObstacle(o){
+    const x=sx(o.wx), y=sy(o.wy);
+    switch(o.type){
+      case 'tree':
+        px(x-1,y-4,3,6,P.trunk); ctx.fillStyle=P.treeA;
+        tri(x,y-26,12,12); tri(x,y-18,15,12); tri(x,y-9,18,12);
+        ctx.fillStyle=P.treeB; tri(x-1,y-25,5,6); break;
+      case 'pine2':
+        px(x-1,y-4,3,6,P.trunk); ctx.fillStyle=P.treeA;
+        tri(x,y-30,14,14); tri(x,y-20,18,14); tri(x,y-9,22,14); break;
+      case 'rock':
+        ctx.fillStyle=P.rockA; blob(x,y-4,15,11);
+        ctx.fillStyle=P.rockB; blob(x-3,y-7,7,5); px(x-7,y+1,15,3,P.rockC); break;
+      case 'stump':
+        px(x-4,y-6,9,8,P.trunk); px(x-4,y-6,9,3,P.treeB); break;
+      case 'mogul':
+        ctx.fillStyle=P.mogul; blob(x,y-2,16,8);
+        ctx.strokeStyle=P.mogulLine; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.ellipse(x,y-2,12,5,0,Math.PI*0.15,Math.PI*0.85); ctx.stroke(); break;
+      case 'ramp':
+        ctx.fillStyle=P.ramp; ctx.beginPath();
+        ctx.moveTo(x-20,y+2); ctx.lineTo(x+20,y+2); ctx.lineTo(x+20,y-12); ctx.closePath(); ctx.fill();
+        px(x-20,y+1,40,3,P.rampLine); break;
+    }
+  }
+
+  function drawSkier(){
+    const x=sx(sk.wx), y=sy(sk.wy)-sk.hop;
+    ctx.save(); ctx.translate(x,y);
+    ctx.fillStyle=hexToRgba('#1e3250',.12);
+    ctx.beginPath(); ctx.ellipse(0,2+sk.hop,10,3,0,0,Math.PI*2); ctx.fill();
+
+    if(sk.crash>0){
+      ctx.strokeStyle='#3a3f45'; ctx.lineWidth=3; ctx.lineCap='round';
+      seg(-9,-2,9,-6); seg(-9,-6,9,-2);
+      px(-4,-9,8,6,P.coat); px(-3,-13,6,4,P.face); px(-4,-16,8,4,P.hat);
+      ctx.restore(); return;
+    }
+    if(sk.air>0 && sk.spin) ctx.rotate(sk.spin);
+    const angle=DIR_ANGLE[sk.dir], ca=Math.cos(angle), sa=Math.sin(angle);
+    ctx.strokeStyle='#2a2e33'; ctx.lineWidth=3; ctx.lineCap='round';
+    const len=13, off=4;
+    for(const s of [-1,1]){
+      const bx=s*off*ca, dx=sa*len, dy=ca*len;
+      seg(bx-dx*0.4, -dy*0.4+1, bx+dx*0.6, dy*0.6+1);
+    }
+    const lean=sa*3;
+    px(-4+lean,-9,8,8,P.coat); px(-4+lean,-3,8,4,P.pants);
+    ctx.strokeStyle=P.pants; ctx.lineWidth=2;
+    seg(-4+lean,-7,-8+lean,-1); seg(4+lean,-7,8+lean,-1);
+    ctx.strokeStyle=P.glove; seg(-8+lean,-1,-9+lean,5); seg(8+lean,-1,9+lean,5);
+    px(-3+lean,-14,6,5,P.face); px(-4+lean,-18,8,4,P.hat); px(2+lean,-20,3,3,P.pom);
+    ctx.restore();
+  }
+
+  function drawMover(m){
+    const x=sx(m.wx), y=sy(m.wy);
+    ctx.fillStyle=hexToRgba('#1e3250',.10);
+    ctx.beginPath(); ctx.ellipse(x,y+2,8,2.5,0,0,Math.PI*2); ctx.fill();
+    if(m.kind==='dog'){
+      const face=m.vx>=0?1:-1, trot=(Math.sin(m.t*16)*1.2)|0;
+      const pee=Math.sin(m.t*2.3)>0.94;
+      px(x-6,y-6,12,5,P.dogA); px(x+face*6-2,y-9,5,5,P.dogA);
+      px(x+face*7,y-9,2,2,P.dogB); px(x-face*7,y-6,3,2,P.dogA);
+      px(x-5,y-1,2,3+trot,P.dogB);
+      if(pee) px(x-face*6,y-3,2,2,P.dogB); else px(x+3,y-1,2,3-trot,P.dogB);
+      px(x+face*4,y-10,2,2,P.dogB); return;
+    }
+    const coat=m.kind==='boarder'?P.boarder:P.skier2;
+    px(x-4,y-8,8,7,coat); px(x-3,y-1,6,3,P.pants);
+    px(x-3,y-12,6,4,P.face); px(x-4,y-15,8,3,'#222');
+    if(m.kind==='boarder'){ px(x-9,y+1,18,3,'#20202a'); px(x-9,y+1,4,3,P.accent); px(x+5,y+1,4,3,P.accent); }
+    else { ctx.strokeStyle='#2a2e33'; ctx.lineWidth=2; ctx.lineCap='round'; seg(x-6,y+2,x+2,y+2); seg(x-2,y+2,x+6,y+2); }
+  }
+
+  function drawYeti(){
+    if(!yeti) return;
+    const x=sx(yeti.wx), y=sy(yeti.wy), eating=state==='caught';
+    const stepUp=eating?0:(Math.sin(yeti.step*14)*2);
+    ctx.save(); ctx.translate(x,y);
+    ctx.fillStyle=hexToRgba('#1e3250',.14);
+    ctx.beginPath(); ctx.ellipse(0,4,13,4,0,0,Math.PI*2); ctx.fill();
+    const G=P.monster, GD=P.monsterDark, F=P.monsterFur;
+    px(-7,-2,5,8+stepUp,GD); px(2,-2,5,8-stepUp,GD);
+    px(-9,-18,18,18,G); px(-9,-18,18,4,F);
+    if(eating){ px(-14,-24,6,10,G); px(8,-24,6,10,G); } else { px(-14,-16,6,12,G); px(8,-16,6,12,G); }
+    px(-8,-16,16,10,F); px(-6,-14,3,3,'#111'); px(3,-14,3,3,'#111');
+    if(eating){ px(-6,-8,12,7,P.mouth); px(-6,-8,12,2,'#fff'); px(-6,-3,12,2,'#fff'); }
+    else { px(-5,-7,10,2,'#3a3f45'); px(-5,-7,2,2,'#fff'); px(3,-7,2,2,'#fff'); }
+    ctx.restore();
+  }
+
+  function drawHUD(){
+    const pad=10;
+    const lines=['Time:  '+elapsed.toFixed(1),'Dist:  '+Math.round(dist),'Speed: '+speedReadout(),'Style: '+style];
+    ctx.font='20px VT323, monospace'; ctx.textBaseline='top';
+    let bw=0; for(const l of lines) bw=Math.max(bw,ctx.measureText(l).width);
+    bw+=16; const bh=lines.length*20+12, bx=W-bw-pad, by=pad;
+    ctx.fillStyle=P.hudBg; ctx.fillRect(bx,by,bw,bh);
+    ctx.strokeStyle=P.hudInk; ctx.lineWidth=2; ctx.strokeRect(bx+.5,by+.5,bw-1,bh-1);
+    ctx.fillStyle=P.hudInk; lines.forEach((l,i)=>ctx.fillText(l,bx+8,by+6+i*20));
+    if(dist>=YETI_DIST-120 && dist<YETI_DIST && state==='run'){
+      ctx.font='22px VT323, monospace'; ctx.textAlign='center';
+      ctx.fillStyle=(Math.floor(elapsed*4)%2)?P.accent:P.hudInk;
+      ctx.fillText('! SOMETHING IS COMING !',W/2,14); ctx.textAlign='left';
+    }
+  }
+  function speedReadout(){
+    if(state!=='run'&&state!=='saver') return '0';
+    const s=Math.cos(DIR_ANGLE[sk.dir]);
+    let v=Math.round((0.30+0.70*s)*(keys.tuck?280:200)/6);
+    if(sk.crash>0) v=0; return String(v);
+  }
+  function drawSaverHint(){
+    const a=clamp(3-saverTime,0,1); if(a<=0) return;
+    ctx.font='20px VT323, monospace'; ctx.textAlign='center';
+    ctx.fillStyle=hexToRgba(P.text,a*0.6);
+    ctx.fillText('press any key to exit', W/2, H-30); ctx.textAlign='left';
+  }
+
+  // ---------- flow ----------
+  const startO=document.getElementById('start'), overO=document.getElementById('over');
+  function startOrRestart(){
+    saver=false; document.body.classList.remove('saver');
+    startO.hidden=true; overO.hidden=true;
+    reset(); state='run'; last=performance.now();
+  }
+  function startSaver(){
+    saver=true; document.body.classList.add('saver');
+    startO.hidden=true; overO.hidden=true;
+    reset(); state='saver'; saverTime=0; last=performance.now();
+  }
+  function stopSaver(){
+    saver=false; document.body.classList.remove('saver');
+    state='ready'; startO.hidden=false;
+  }
+  document.getElementById('startBtn').addEventListener('click',startOrRestart);
+  document.getElementById('againBtn').addEventListener('click',startOrRestart);
+  document.getElementById('saverBtn').addEventListener('click',startSaver);
+
+  // theme swatches
+  const themesEl=document.getElementById('themes');
+  Object.keys(THEMES).forEach(key=>{
+    const t=THEMES[key];
+    const b=document.createElement('button');
+    b.className='sw'; b.dataset.t=key; b.title=t.name;
+    b.setAttribute('aria-label','Theme: '+t.name);
+    b.style.background=t.bg;
+    const dot=document.createElement('span'); dot.className='dot'; dot.style.background=t.accent;
+    b.appendChild(dot);
+    b.addEventListener('click',()=>setTheme(key));
+    themesEl.appendChild(b);
+  });
+
+  // ---------- boot ----------
+  const params=new URLSearchParams(location.search);
+  let savedTheme='classic';
+  try{ savedTheme=localStorage.getItem('slopepanic_theme')||'classic'; }catch(e){}
+  setTheme(params.get('theme')||savedTheme);
+  if(params.get('hud')==='0') hudOff=true;
+
+  function boot(data){
+    if(data&&data.best>best) best=data.best;
+    if(params.get('mode')==='screensaver'){ reset(); startSaver(); }
+    else reset();
+    requestAnimationFrame(frame);
+  }
+  try{
+    if(window.claude && window.claude.hot){
+      window.claude.hot.snapshot(()=>({best}));
+      window.claude.hot.ready ? window.claude.hot.ready(boot) : boot(window.claude.hot.data||{});
+    } else boot({});
+  }catch(e){ boot({}); }
+})();
+</script>
+
+</body>
+</html>
