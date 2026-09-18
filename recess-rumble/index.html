@@ -753,7 +753,7 @@
       ctx.fillStyle=shade(c.skin,-6); roundRect(hx-hr*0.55,hy+hr*0.3,hr*1.1,hr*0.5,4); ctx.fill(); }              // muzzle
   }
 
-  // ---- baseline hero renderer: a detailed, gradient-shaded martial artist (original) ----
+  // ---- baseline hero renderer (design-panel "DYN" dynamic-heroic; original character) ----
   const INK='rgba(24,15,9,.6)';
   function capsule(x1,y1,r1,x2,y2,r2,light,dark,ink){
     const a=Math.atan2(y2-y1,x2-x1), px=Math.cos(a+Math.PI/2), py=Math.sin(a+Math.PI/2), rM=Math.max(r1,r2);
@@ -767,94 +767,378 @@
     g.addColorStop(0,light); g.addColorStop(1,dark); ctx.fillStyle=g;
     ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill(); if(ink){ ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.stroke(); }
   }
-  function heroFist(x,y,big){
-    const rr=big?16:12, sk='#ffdcae', skd='#c88a52';
-    ball(x,y,rr,'#fff0dc',skd,INK);
-    ctx.strokeStyle='rgba(0,0,0,.25)'; ctx.lineWidth=1.6;                        // knuckle line
-    ctx.beginPath(); ctx.arc(x,y,rr*0.66,Math.PI*0.9,Math.PI*1.9); ctx.stroke();
-    ctx.strokeStyle='#f3f4ec'; ctx.lineWidth=2.4;                                // wrap tape
-    line(x-rr*0.8,y-rr*0.05,x+rr*0.8,y-rr*0.05); line(x-rr*0.8,y+rr*0.4,x+rr*0.8,y+rr*0.4);
-  }
-  function drawHeroKid(f, w, h, bob, punching, kicking, special){
-    const SKl='#ffdcae', SKd='#c88a52', SKf='#e6b47e';    // skin light/dark/mid
-    const GIl='#ffffff', GId='#b9bcb0';                    // gi
-    const HRl='#7c5330', HRd='#3a2412';                    // hair
-    const BNl='#f0323c', BNd='#8f1219';                    // headband
-    ctx.save(); if(f.crouch) ctx.scale(1,0.72);
-    const br=Math.sin(f.anim*3)*1.2, R=f.c.reach;
-    const ank=-h*0.05, kne=-h*0.28, hip=-h*0.46, sho=-h*0.80+br, chC=-h*0.63+br, waist=-h*0.45;
-    const HR=w*0.31, hcx=w*0.05, hcy=-h*0.93+br;
-    const shL=-w*0.30, shR=w*0.30, shY=sho+w*0.02;
 
-    // ---- back arm (behind torso) ----
-    capsule(shL,shY, w*0.13, -w*0.16,chC-h*0.02, w*0.11, SKf,SKd, INK);
-    capsule(-w*0.16,chC-h*0.02, w*0.11, -w*0.04,chC+h*0.05, w*0.09, SKf,SKd, INK);
-    heroFist(-w*0.03,chC+h*0.05,false);
-    // ---- legs (thighs behind gi skirt) ----
-    capsule(-w*0.13,hip, w*0.17, -w*0.30,kne, w*0.13, GIl,GId, INK);   // back thigh
-    capsule( w*0.13,hip, w*0.17,  w*0.26,kne, w*0.13, GIl,GId, INK);   // front thigh
-    // ---- bare muscled chest (open gi) ----
-    ctx.fillStyle=GIl;                                                  // gi torso base
-    ctx.beginPath(); ctx.moveTo(shL,sho); ctx.lineTo(shR,sho); ctx.lineTo(w*0.26,waist); ctx.lineTo(-w*0.26,waist); ctx.closePath(); ctx.fill();
-    // exposed chest wedge (skin)
-    const cg=ctx.createLinearGradient(-w*0.16,0,w*0.16,0); cg.addColorStop(0,SKd); cg.addColorStop(0.5,SKl); cg.addColorStop(1,SKf);
-    ctx.fillStyle=cg; ctx.beginPath(); ctx.moveTo(-w*0.17,sho+h*0.03); ctx.lineTo(w*0.17,sho+h*0.03); ctx.lineTo(w*0.06,waist); ctx.lineTo(-w*0.06,waist); ctx.closePath(); ctx.fill();
-    ball(-w*0.08,chC-h*0.02,w*0.12,SKl,SKd,null); ball(w*0.08,chC-h*0.02,w*0.12,SKl,SKd,null);   // pecs
-    ctx.strokeStyle='rgba(120,70,35,.5)'; ctx.lineWidth=2;                                        // abs
-    line(0,chC, 0,waist-4); line(-w*0.07,chC+h*0.06,w*0.07,chC+h*0.06); line(-w*0.06,chC+h*0.11,w*0.06,chC+h*0.11);
-    ctx.strokeStyle=GId; ctx.lineWidth=w*0.04;                                                    // gi lapel edges
-    line(-w*0.17,sho+h*0.03,-w*0.06,waist); line(w*0.17,sho+h*0.03,w*0.06,waist);
-    ball(shL,shY,w*0.15,GIl,GId,INK); ball(shR,shY,w*0.15,GIl,GId,INK);                           // gi shoulders
-    ctx.strokeStyle=INK; ctx.lineWidth=2;                                                         // torso outline
-    ctx.beginPath(); ctx.moveTo(shL,sho); ctx.lineTo(shR,sho); ctx.lineTo(w*0.26,waist); ctx.lineTo(-w*0.26,waist); ctx.closePath(); ctx.stroke();
-    // gi skirt over thigh tops
-    ctx.fillStyle=GIl; ctx.beginPath(); ctx.moveTo(-w*0.28,waist); ctx.lineTo(w*0.28,waist); ctx.lineTo(w*0.22,hip+h*0.06); ctx.lineTo(w*0.02,hip+h*0.03); ctx.lineTo(-w*0.02,hip+h*0.03); ctx.lineTo(-w*0.22,hip+h*0.06); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle=GId; ctx.lineWidth=2; line(-w*0.12,waist,-w*0.14,hip+h*0.05); line(w*0.12,waist,w*0.14,hip+h*0.05);
-    // belt
-    ctx.fillStyle='#20202a'; ctx.fillRect(-w*0.28,waist-3, w*0.56, h*0.055);
-    ctx.fillStyle='#0c0c12'; ctx.fillRect(-w*0.28,waist+h*0.03, w*0.56, h*0.015);
-    ctx.fillStyle='#20202a'; ctx.fillRect(-w*0.05,waist, w*0.09, h*0.14); ctx.fillRect(w*0.02,waist, w*0.06, h*0.11);
-    // ---- calves + feet (in front of skirt) ----
-    capsule(-w*0.30,kne, w*0.12, -w*0.40,ank, w*0.08, GId,GIl, INK); ball(-w*0.43,ank,w*0.11,SKl,SKd,INK);
-    if(kicking){ const kx=w*1.0+R*0.4, ky=chC+h*0.05;
-      capsule(w*0.13,hip,w*0.16, kx*0.55,(hip+ky)/2, w*0.13, GIl,GId, INK);
-      capsule(kx*0.55,(hip+ky)/2, w*0.13, kx,ky, w*0.1, GIl,GId, INK); ball(kx+w*0.06,ky,w*0.12,SKl,SKd,INK); }
-    else { capsule(w*0.26,kne, w*0.12, w*0.32,ank, w*0.09, GIl,GId, INK); ball(w*0.36,ank,w*0.12,SKl,SKd,INK); }
-    // ---- front arm ----
-    if(punching||special){ const fx=w*1.02+R*0.4, fy=chC;
-      capsule(shR,shY,w*0.13, w*0.55,fy-3,w*0.11, SKl,SKf, INK);
-      capsule(w*0.55,fy-3,w*0.11, fx,fy,w*0.1, SKl,SKf, INK); heroFist(fx,fy,true); }
-    else if(f.blocking){ capsule(shR,shY,w*0.13, w*0.16,chC-h*0.07,w*0.11, SKl,SKf, INK); heroFist(w*0.18,chC-h*0.07,false); }
-    else { capsule(shR,shY,w*0.13, w*0.34,chC,w*0.11, SKl,SKf, INK);
-      capsule(w*0.34,chC,w*0.11, w*0.42,chC+h*0.03,w*0.09, SKl,SKf, INK); heroFist(w*0.44,chC+h*0.03,false); }
-    // ---- head ----
-    ctx.fillStyle=BNl; const fl=Math.sin(f.anim*6)*3;                              // headband tails
-    ctx.beginPath(); ctx.moveTo(hcx-HR*0.7,hcy-HR*0.1); ctx.lineTo(hcx-HR*1.9,hcy-HR*0.4+fl); ctx.lineTo(hcx-HR*1.75,hcy+HR*0.12+fl); ctx.closePath(); ctx.fill();
-    ctx.fillStyle=BNd; ctx.beginPath(); ctx.moveTo(hcx-HR*0.7,hcy+HR*0.06); ctx.lineTo(hcx-HR*1.95,hcy+HR*0.36-fl); ctx.lineTo(hcx-HR*1.75,hcy+HR*0.62-fl); ctx.closePath(); ctx.fill();
-    capsule(hcx,hcy+HR*0.5, w*0.11, hcx,hcy+HR*1.1, w*0.13, SKf,SKd, INK);         // neck
-    ball(hcx,hcy,HR,SKl,SKd,INK);                                                  // head
-    ctx.fillStyle=SKf; roundRect(hcx-HR*0.52,hcy+HR*0.36,HR*1.02,HR*0.74,HR*0.34); ctx.fill(); // jaw
-    ctx.fillStyle=SKd; dot(hcx-HR*0.84,hcy+HR*0.05,HR*0.2);                        // ear
-    // hair — layered spikes
-    const hairY=hcy-HR*0.44;
-    ctx.fillStyle=HRd; for(let i=-2;i<=3;i++) tri(hcx+i*HR*0.34-HR*0.22,hairY+3,HR*0.4,-HR*0.86);
-    ctx.fillStyle=HRl; for(let i=-2;i<=3;i++) tri(hcx+i*HR*0.34-HR*0.18,hairY,HR*0.34,-HR*0.74);
-    ctx.fillStyle='#8a5f38'; for(let i=-1;i<=2;i++) tri(hcx+i*HR*0.34-HR*0.09,hairY-HR*0.03,HR*0.14,-HR*0.5);
-    ctx.fillStyle=SKf; ctx.fillRect(hcx-HR*0.9,hcy-HR*0.16,HR*1.8,HR*0.34);        // forehead band base
-    ctx.fillStyle=BNl; roundRect(hcx-HR*1.04,hcy-HR*0.5,HR*2.08,HR*0.36,3); ctx.fill();  // headband
-    ctx.fillStyle=BNd; ctx.fillRect(hcx-HR*1.04,hcy-HR*0.32,HR*2.08,HR*0.1);
-    // face — determined
-    ctx.strokeStyle='#20140c'; ctx.lineWidth=Math.max(2.8,HR*0.19); ctx.lineCap='round';
-    line(hcx+HR*0.08,hcy-HR*0.04, hcx+HR*0.64,hcy+HR*0.14);
-    line(hcx-HR*0.5,hcy+HR*0.04, hcx-HR*0.04,hcy-HR*0.08);
-    ctx.fillStyle='#fff'; roundRect(hcx+HR*0.3,hcy+HR*0.14,HR*0.3,HR*0.2,3); ctx.fill();
-    ctx.fillStyle='#20140c'; dot(hcx+HR*0.5,hcy+HR*0.25,HR*0.09);
-    ctx.fillStyle='#fff'; roundRect(hcx-HR*0.02,hcy+HR*0.17,HR*0.22,HR*0.17,2); ctx.fill();
-    ctx.fillStyle='#20140c'; dot(hcx+HR*0.12,hcy+HR*0.26,HR*0.07);
-    ctx.strokeStyle=SKd; ctx.lineWidth=2.2; line(hcx+HR*0.54,hcy+HR*0.2,hcx+HR*0.6,hcy+HR*0.48); line(hcx+HR*0.6,hcy+HR*0.48,hcx+HR*0.46,hcy+HR*0.52);
-    ctx.strokeStyle='#7a2a1a'; ctx.lineWidth=2.8; ctx.beginPath(); ctx.arc(hcx+HR*0.22,hcy+HR*0.74,HR*0.3,Math.PI*1.12,Math.PI*1.8); ctx.stroke();
+  // ---- helper functions (prefixed DYN_ to avoid collisions) ----
+  function DYN_lg(x0, y0, x1, y1, a, b) {
+    var g = ctx.createLinearGradient(x0, y0, x1, y1);
+    g.addColorStop(0, a); g.addColorStop(1, b);
+    return g;
+  }
+  function DYN_path(build, fill, ink, lw) {
+    ctx.beginPath();
+    build();
+    ctx.closePath();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (ink) {
+      ctx.strokeStyle = ink; ctx.lineWidth = lw;
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      ctx.stroke();
+    }
+  }
+  function DYN_foot(x, y, dir, len, sL, sD, sI, lw) {
+    DYN_path(function () {
+      ctx.moveTo(x - len * 0.35 * dir, y - len * 0.55);
+      ctx.lineTo(x + len * 0.85 * dir, y - len * 0.46);
+      ctx.quadraticCurveTo(x + len * 1.08 * dir, y - len * 0.06, x + len * 0.78 * dir, y);
+      ctx.lineTo(x - len * 0.42 * dir, y);
+      ctx.quadraticCurveTo(x - len * 0.52 * dir, y - len * 0.32, x - len * 0.35 * dir, y - len * 0.55);
+    }, DYN_lg(x, y - len, x, y, sL, sD), sI, lw);
+  }
+  function DYN_fist(x, y, r, dir, sL, sD, sI) {
+    ball(x - r * 0.45 * dir, y, r * 0.72, sL, sD, sI);   // wrist stub
+    ball(x, y, r, sL, sD, sI);                            // fist mass
+    var k;
+    ctx.fillStyle = sL;
+    for (k = -1; k <= 1; k++) { dot(x + r * 0.5 * dir, y + k * r * 0.4, r * 0.22); } // knuckles
+    ctx.strokeStyle = sI; ctx.lineWidth = r * 0.12; ctx.lineCap = 'round';
+    for (k = -1; k <= 1; k++) { line(x + r * 0.05 * dir, y + k * r * 0.4, x + r * 0.55 * dir, y + k * r * 0.4); }
+    // white hand-wrap bands
+    ctx.strokeStyle = '#f2f5fa'; ctx.lineWidth = r * 0.4; ctx.lineCap = 'round';
+    line(x - r * 0.7 * dir, y - r * 0.2, x + r * 0.35 * dir, y - r * 0.2);
+    line(x - r * 0.7 * dir, y + r * 0.3, x + r * 0.35 * dir, y + r * 0.3);
+    ctx.strokeStyle = '#c6ccd8'; ctx.lineWidth = r * 0.08;
+    line(x - r * 0.7 * dir, y + r * 0.05, x + r * 0.35 * dir, y + r * 0.05);
+  }
+  function DYN_arm(sx, sy, ex, ey, hx, hy, upR, foR, sL, sD, sI, slL, slD, slI, dir, LW) {
+    capsule(sx, sy, upR * 0.95, ex, ey, foR * 1.0, sL, sD, sI);      // upper arm
+    ball((sx + ex) / 2, (sy + ey) / 2, upR * 0.82, sL, sD, sI);      // bicep bulge
+    ball(sx, sy, upR * 1.18, sL, sD, sI);                            // deltoid
+    capsule(sx, sy, upR * 1.22, sx + (ex - sx) * 0.5, sy + (ey - sy) * 0.5, foR * 1.02, slL, slD, slI); // short gi sleeve
+    capsule(ex, ey, foR * 0.95, hx, hy, foR * 0.78, sL, sD, sI);     // forearm
+    // forearm wraps (perpendicular bands)
+    var dx = hx - ex, dy = hy - ey, dl = Math.sqrt(dx * dx + dy * dy) || 1, px = -dy / dl, py = dx / dl, wn, t, wx, wy;
+    for (wn = 0; wn < 4; wn++) {
+      t = 0.22 + wn * 0.19; wx = ex + dx * t; wy = ey + dy * t;
+      ctx.strokeStyle = (wn % 2) ? '#dee3ec' : '#f4f7fb'; ctx.lineWidth = foR * 0.85; ctx.lineCap = 'round';
+      line(wx - px * foR * 0.82, wy - py * foR * 0.82, wx + px * foR * 0.82, wy + py * foR * 0.82);
+    }
+    DYN_fist(hx, hy, foR * 1.2, dir, sL, sD, sI);
+  }
+  function DYN_leg(hx, hy, kx, ky, ax, ay, thR, shR, sL, sD, sI, footDir, footLen, LW) {
+    capsule(hx, hy, thR, kx, ky, shR * 1.12, sL, sD, sI);           // thigh
+    ball((hx + kx) / 2, (hy + ky) / 2, thR * 0.72, sL, sD, sI);     // quad bulge
+    ball(kx, ky, shR * 1.0, sL, sD, sI);                            // knee
+    capsule(kx, ky, shR, ax, ay, shR * 0.62, sL, sD, sI);           // shin
+    ball(kx + (ax - kx) * 0.35, ky + (ay - ky) * 0.35, shR * 0.85, sL, sD, sI); // calf
+    DYN_foot(ax, ay, footDir, footLen, sL, sD, sI, LW);
+  }
+  function DYN_spike(x0, y0, x1, y1, tx, ty, fill, ink, lw) {
+    DYN_path(function () { ctx.moveTo(x0, y0); ctx.lineTo(tx, ty); ctx.lineTo(x1, y1); }, fill, ink, lw);
+  }
+
+  // ---- main ----
+  function drawHeroKid(f, w, h, bob, punching, kicking, special) {
+    var A = f.anim || 0;
+    var breathe = Math.sin(A * 1.8) * 0.012 * h;
+    var sway = Math.sin(A * 1.1) * 0.02 * w;
+    var flick = Math.sin(A * 2.3);
+    var crouch = !!f.crouch, block = !!f.blocking;
+    var atk = special ? 3 : punching ? 1 : kicking ? 2 : 0;
+    var LW = Math.max(1.6, 0.024 * w);
+
+    // palette
+    var skinL = '#f5cf9c', skinD = '#b3783e', skinI = '#3f2613';
+    var bskL = '#d6a267', bskD = '#8a5628', bskI = '#33200f';       // back-limb (depth) skin
+    var giL = '#ffffff', giD = '#c4cbd8', giI = '#2c3341';
+    var beltL = '#e85440', beltD = '#921d12', beltI = '#360a05';    // red belt
+    var hairL = '#5c4632', hairD = '#22160d', hairI = '#0c0704';
+    var bandL = '#3fa1e4', bandD = '#174e88', bandI = '#0a2846';    // blue headband
+
+    ctx.save();
+    ctx.translate(0, bob || 0);
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+
+    // ---------- stance geometry ----------
+    var hipY = crouch ? -0.36 * h : -0.50 * h;
+    var bHipX = -0.12 * w + sway, fHipX = 0.14 * w + sway;
+    var bKneeX = -0.34 * w + sway, bKneeY = (crouch ? -0.20 : -0.28) * h;
+    var bAnkX = -0.46 * w, bAnkY = 0;
+    var fKneeX = (crouch ? 0.42 : 0.34) * w + sway, fKneeY = (crouch ? -0.16 : -0.26) * h;
+    var fAnkX = 0.42 * w, fAnkY = 0;
+    if (atk === 2) { fKneeX = 0.50 * w; fKneeY = -0.30 * h; fAnkX = 1.0 * w; fAnkY = -0.32 * h; } // front kick
+
+    var lean = (atk === 1 || atk === 3) ? 0.07 * w : atk === 2 ? -0.07 * w : 0;
+    var hipCX = (bHipX + fHipX) / 2;
+    var shY = -0.80 * h + breathe;
+    var shCX = hipCX + lean;
+    var shHalf = 0.46 * w, waistHalf = 0.19 * w;
+
+    var HR = 0.115 * h;
+    var headX = shCX + 0.05 * w + lean * 0.5;
+    var headY = shY - 0.135 * h + breathe;
+
+    // arm endpoints — defaults = idle guard
+    var fSx = shCX + 0.30 * w, fSy = shY + 0.02 * h, fEx = shCX + 0.44 * w, fEy = -0.66 * h, fHx = shCX + 0.31 * w, fHy = -0.76 * h;
+    var bSx = shCX - 0.34 * w, bSy = shY + 0.03 * h, bEx = shCX - 0.30 * w, bEy = -0.64 * h, bHx = shCX - 0.02 * w, bHy = -0.72 * h;
+    if (atk === 1 || atk === 3) {
+      fEx = shCX + 0.58 * w; fEy = -0.72 * h; fHx = shCX + (atk === 3 ? 1.02 : 0.98) * w; fHy = -0.71 * h;
+      bEx = shCX - 0.30 * w; bEy = -0.56 * h; bHx = shCX - 0.16 * w; bHy = -0.49 * h;   // chambered
+    } else if (atk === 2) {
+      fEx = shCX + 0.30 * w; fEy = -0.68 * h; fHx = shCX + 0.16 * w; fHy = -0.78 * h;
+      bEx = shCX - 0.46 * w; bEy = -0.60 * h; bHx = shCX - 0.56 * w; bHy = -0.68 * h;
+    }
+    if (block) {
+      fSx = shCX + 0.28 * w; fEx = shCX + 0.22 * w; fEy = -0.60 * h; fHx = shCX + 0.26 * w; fHy = -0.82 * h;
+      bSx = shCX - 0.30 * w; bEx = shCX + 0.06 * w; bEy = -0.58 * h; bHx = shCX + 0.10 * w; bHy = -0.80 * h;
+    }
+
+    // ---------- ground shadow ----------
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath();
+    ctx.ellipse(0.02 * w, -0.008 * h, 0.58 * w, 0.085 * h, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // ---------- BACK leg ----------
+    DYN_leg(bHipX, hipY, bKneeX, bKneeY, bAnkX, bAnkY, 0.135 * w, 0.09 * w, bskL, bskD, bskI, -1, 0.15 * w, LW);
+
+    // ---------- BACK arm (behind torso) ----------
+    DYN_arm(bSx, bSy, bEx, bEy, bHx, bHy, 0.125 * w, 0.095 * w, bskL, bskD, bskI, giD, '#a7aeba', giI, atk === 1 || atk === 3 ? -1 : -1, LW);
+
+    // ---------- FRONT leg ----------
+    DYN_leg(fHipX, hipY, fKneeX, fKneeY, fAnkX, fAnkY, 0.14 * w, 0.092 * w, skinL, skinD, skinI, 1, 0.17 * w, LW);
+
+    // ---------- TORSO (bare muscle) ----------
+    DYN_path(function () {
+      ctx.moveTo(shCX + shHalf, shY);
+      ctx.quadraticCurveTo(shCX + shHalf * 0.92, shY + 0.14 * h, hipCX + waistHalf, hipY + 0.02 * h);
+      ctx.lineTo(hipCX - waistHalf, hipY + 0.02 * h);
+      ctx.quadraticCurveTo(shCX - shHalf * 0.92, shY + 0.14 * h, shCX - shHalf, shY);
+      ctx.quadraticCurveTo(shCX, shY - 0.05 * h, shCX + shHalf, shY);
+    }, DYN_lg(shCX + 0.3 * w, shY - 0.05 * h, shCX - 0.35 * w, hipY, skinL, skinD), skinI, LW);
+
+    // traps + neck
+    capsule(headX - 0.02 * w, headY + HR * 0.6, 0.085 * w, shCX, shY + 0.04 * h, 0.14 * w, skinL, skinD, skinI);
+
+    // pecs
+    ball(shCX + 0.15 * w, shY + 0.12 * h, 0.145 * w, skinL, skinD, skinI);
+    ball(shCX - 0.05 * w, shY + 0.13 * h, 0.145 * w, skinL, skinD, skinI);
+    ctx.strokeStyle = skinI; ctx.lineWidth = LW * 0.7;
+    line(shCX + 0.05 * w, shY + 0.06 * h, shCX + 0.05 * w, shY + 0.22 * h);           // sternum cleft
+    line(shCX - 0.10 * w, shY + 0.19 * h, shCX + 0.20 * w, shY + 0.19 * h);           // pec underline
+    // abs (2 columns x 3)
+    var col, row, axc, ayc;
+    for (row = 0; row < 3; row++) {
+      for (col = -1; col <= 1; col += 2) {
+        axc = shCX + col * 0.06 * w + 0.03 * w;
+        ayc = shY + 0.28 * h + row * 0.055 * h;
+        ball(axc, ayc, 0.05 * w, skinL, skinD, skinI);
+      }
+    }
+    // V-cut to belt
+    ctx.strokeStyle = skinI; ctx.lineWidth = LW * 0.7;
+    line(shCX - 0.10 * w, hipY - 0.06 * h, shCX + 0.02 * w, hipY);
+    line(shCX + 0.16 * w, hipY - 0.06 * h, shCX + 0.04 * w, hipY);
+
+    // ---------- GI jacket panels (over outer torso, open at chest) ----------
+    var giGradR = DYN_lg(shCX + 0.3 * w, shY, shCX, hipY, giL, giD);
+    var giGradL = DYN_lg(shCX + 0.1 * w, shY, shCX - 0.4 * w, hipY, '#eef1f6', giD);
+    // left/back panel first
+    DYN_path(function () {
+      ctx.moveTo(shCX - shHalf, shY - 0.01 * h);
+      ctx.quadraticCurveTo(shCX - shHalf * 0.95, shY + 0.13 * h, hipCX - waistHalf - 0.02 * w, hipY + 0.03 * h);
+      ctx.lineTo(hipCX - 0.01 * w, hipY + 0.01 * h);
+      ctx.lineTo(shCX - 0.11 * w, shY + 0.05 * h);
+      ctx.lineTo(shCX - shHalf * 0.5, shY - 0.02 * h);
+    }, giGradL, giI, LW);
+    // right/front panel over it
+    DYN_path(function () {
+      ctx.moveTo(shCX + shHalf, shY - 0.01 * h);
+      ctx.quadraticCurveTo(shCX + shHalf * 0.95, shY + 0.13 * h, hipCX + waistHalf + 0.02 * w, hipY + 0.03 * h);
+      ctx.lineTo(hipCX + 0.02 * w, hipY + 0.01 * h);
+      ctx.lineTo(shCX + 0.10 * w, shY + 0.05 * h);
+      ctx.lineTo(shCX + shHalf * 0.5, shY - 0.02 * h);
+    }, giGradR, giI, LW);
+    // cloth folds on panels
+    ctx.strokeStyle = 'rgba(120,130,150,0.5)'; ctx.lineWidth = LW * 0.6;
+    line(shCX + 0.26 * w, shY + 0.06 * h, hipCX + 0.10 * w, hipY);
+    line(shCX - 0.26 * w, shY + 0.06 * h, hipCX - 0.09 * w, hipY);
+    line(shCX + 0.36 * w, shY + 0.04 * h, hipCX + 0.16 * w, hipY + 0.01 * h);
+
+    // collar (crossed-over V)
+    capsule(shCX + 0.11 * w, shY + 0.02 * h, 0.05 * w, hipCX + 0.02 * w, hipY - 0.01 * h, 0.032 * w, giL, giD, giI);
+    capsule(shCX - 0.11 * w, shY + 0.03 * h, 0.05 * w, hipCX - 0.01 * w, hipY - 0.01 * h, 0.032 * w, '#eef1f6', giD, giI);
+
+    // ---------- BELT + knot + tails ----------
+    var beltGrad = DYN_lg(hipCX, hipY - 0.04 * h, hipCX, hipY + 0.06 * h, beltL, beltD);
+    roundRect(hipCX - waistHalf - 0.07 * w, hipY - 0.02 * h, (waistHalf + 0.07 * w) * 2, 0.085 * h, 0.02 * w);
+    ctx.fillStyle = beltGrad; ctx.fill(); ctx.strokeStyle = beltI; ctx.lineWidth = LW; ctx.stroke();
+    // knot
+    var knX = hipCX + 0.05 * w;
+    roundRect(knX - 0.05 * w, hipY - 0.03 * h, 0.1 * w, 0.1 * h, 0.02 * w);
+    ctx.fillStyle = DYN_lg(knX, hipY - 0.03 * h, knX, hipY + 0.07 * h, beltL, beltD); ctx.fill();
+    ctx.strokeStyle = beltI; ctx.stroke();
+    ctx.strokeStyle = beltI; ctx.lineWidth = LW * 0.7;
+    line(knX, hipY - 0.02 * h, knX, hipY + 0.06 * h);
+    // hanging tails
+    var tflare = 0.02 * w * flick + atk * 0.01 * w;
+    DYN_path(function () {
+      ctx.moveTo(knX - 0.045 * w, hipY + 0.05 * h);
+      ctx.lineTo(knX - 0.02 * w, hipY + 0.05 * h);
+      ctx.lineTo(knX + 0.01 * w + tflare, hipY + 0.20 * h);
+      ctx.lineTo(knX - 0.05 * w + tflare, hipY + 0.20 * h);
+    }, DYN_lg(knX, hipY, knX, hipY + 0.2 * h, beltL, beltD), beltI, LW * 0.8);
+    DYN_path(function () {
+      ctx.moveTo(knX + 0.02 * w, hipY + 0.05 * h);
+      ctx.lineTo(knX + 0.045 * w, hipY + 0.05 * h);
+      ctx.lineTo(knX + 0.05 * w - tflare, hipY + 0.19 * h);
+      ctx.lineTo(knX - 0.0 * w - tflare, hipY + 0.19 * h);
+    }, DYN_lg(knX, hipY, knX, hipY + 0.2 * h, beltD, beltL), beltI, LW * 0.8);
+
+    // ---------- GI SKIRT (flaring over thighs) ----------
+    var skY = hipY + 0.02 * h;
+    var skBot = crouch ? -0.10 * h : -0.15 * h;
+    var flare = 0.05 * w + Math.abs(flick) * 0.03 * w + atk * 0.025 * w;
+    // back panel
+    DYN_path(function () {
+      ctx.moveTo(hipCX - 0.02 * w, skY);
+      ctx.lineTo(hipCX - waistHalf - 0.02 * w, skY);
+      ctx.lineTo(hipCX - waistHalf - flare - 0.06 * w, skBot + 0.02 * h);
+      ctx.quadraticCurveTo(hipCX - 0.1 * w, skBot - 0.01 * h, hipCX - 0.02 * w, skBot);
+    }, DYN_lg(hipCX - 0.2 * w, skY, hipCX - 0.2 * w, skBot, '#eef1f6', giD), giI, LW);
+    // front panel
+    DYN_path(function () {
+      ctx.moveTo(hipCX + 0.03 * w, skY);
+      ctx.lineTo(hipCX + waistHalf + 0.03 * w, skY);
+      ctx.lineTo(hipCX + waistHalf + flare + 0.07 * w, skBot + 0.02 * h);
+      ctx.quadraticCurveTo(hipCX + 0.12 * w, skBot - 0.01 * h, hipCX + 0.03 * w, skBot);
+    }, DYN_lg(hipCX + 0.25 * w, skY, hipCX + 0.15 * w, skBot, giL, giD), giI, LW);
+    // center panel
+    DYN_path(function () {
+      ctx.moveTo(hipCX - 0.05 * w, skY);
+      ctx.lineTo(hipCX + 0.08 * w, skY);
+      ctx.lineTo(hipCX + 0.10 * w, skBot - 0.02 * h);
+      ctx.lineTo(hipCX - 0.06 * w, skBot - 0.02 * h);
+    }, DYN_lg(hipCX, skY, hipCX, skBot, '#f6f8fb', giD), giI, LW * 0.9);
+    ctx.strokeStyle = 'rgba(120,130,150,0.55)'; ctx.lineWidth = LW * 0.6;
+    line(hipCX + 0.02 * w, skY, hipCX + 0.06 * w, skBot);
+    line(hipCX + waistHalf * 0.6, skY, hipCX + waistHalf + flare * 0.4, skBot + 0.01 * h);
+    line(hipCX - waistHalf * 0.6, skY, hipCX - waistHalf - flare * 0.4, skBot + 0.02 * h);
+
+    // ---------- HEAD ----------
+    ball(headX, headY, HR, skinL, skinD, skinI);
+    // jaw/chin
+    ball(headX + HR * 0.45, headY + HR * 0.72, HR * 0.42, skinL, skinD, skinI);
+    // ear (back)
+    ball(headX - HR * 0.55, headY + HR * 0.12, HR * 0.24, skinL, skinD, skinI);
+
+    // hair cap
+    ctx.beginPath();
+    ctx.arc(headX, headY, HR * 1.0, Math.PI * 0.98, Math.PI * 2.02, false);
+    ctx.closePath();
+    ctx.fillStyle = DYN_lg(headX, headY - HR, headX, headY + HR * 0.1, hairL, hairD);
+    ctx.fill();
+    ctx.strokeStyle = hairI; ctx.lineWidth = LW; ctx.stroke();
+
+    // spiky hair (up + back)
+    var hairGrad = DYN_lg(headX, headY - HR * 2, headX, headY, hairL, hairD);
+    var jitter = flick * HR * 0.12;
+    var spk = [
+      [-0.95, -0.30, -0.72, -0.62, -1.9, -0.55],
+      [-0.75, -0.58, -0.48, -0.83, -1.4, -1.35],
+      [-0.52, -0.80, -0.20, -0.95, -0.55, -1.9],
+      [-0.24, -0.95, 0.14, -0.97, 0.15, -2.0],
+      [0.12, -0.97, 0.46, -0.85, 0.85, -1.65],
+      [0.44, -0.86, 0.72, -0.64, 1.4, -1.05],
+      [0.68, -0.66, 0.9, -0.34, 1.55, -0.42]
+    ];
+    var si;
+    for (si = 0; si < spk.length; si++) {
+      DYN_spike(
+        headX + spk[si][0] * HR, headY + spk[si][1] * HR,
+        headX + spk[si][2] * HR, headY + spk[si][3] * HR,
+        headX + spk[si][4] * HR - jitter, headY + spk[si][5] * HR - Math.abs(jitter),
+        hairGrad, hairI, LW * 0.85
+      );
+    }
+
+    // headband
+    var bandGrad = DYN_lg(headX, headY - HR, headX, headY, bandL, bandD);
+    ctx.beginPath();
+    ctx.arc(headX, headY, HR * 0.9, Math.PI * 1.12, Math.PI * 1.98, false);
+    ctx.strokeStyle = bandD; ctx.lineWidth = HR * 0.44; ctx.lineCap = 'butt'; ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(headX, headY, HR * 0.9, Math.PI * 1.12, Math.PI * 1.98, false);
+    ctx.strokeStyle = bandL; ctx.lineWidth = HR * 0.22; ctx.stroke();
+    // headband tails (trailing back, flaring)
+    var tbx = headX + Math.cos(Math.PI * 1.14) * HR * 0.9;
+    var tby = headY + Math.sin(Math.PI * 1.14) * HR * 0.9;
+    var tf = 0.5 + Math.abs(flick) * 0.6 + atk * 0.35;
+    DYN_path(function () {
+      ctx.moveTo(tbx, tby);
+      ctx.quadraticCurveTo(tbx - HR * 1.6, tby - HR * 0.4 * tf, tbx - HR * 2.5, tby + HR * 0.3 - HR * 0.7 * flick);
+      ctx.lineTo(tbx - HR * 2.4, tby + HR * 0.75 - HR * 0.7 * flick);
+      ctx.quadraticCurveTo(tbx - HR * 1.4, tby + HR * 0.35, tbx - HR * 0.1, tby + HR * 0.3);
+    }, bandGrad, bandI, LW * 0.85);
+    DYN_path(function () {
+      ctx.moveTo(tbx + HR * 0.05, tby + HR * 0.35);
+      ctx.quadraticCurveTo(tbx - HR * 1.2, tby + HR * 0.9 + HR * 0.5 * tf, tbx - HR * 2.1, tby + HR * 1.3 + HR * 0.6 * flick);
+      ctx.lineTo(tbx - HR * 2.0, tby + HR * 1.75 + HR * 0.6 * flick);
+      ctx.quadraticCurveTo(tbx - HR * 1.1, tby + HR * 1.1, tbx - HR * 0.05, tby + HR * 0.75);
+    }, DYN_lg(headX, headY, headX, headY + HR, bandD, bandL), bandI, LW * 0.85);
+
+    // ---------- FACE (front, +x side) ----------
+    // brow (determined, angled down toward nose/front)
+    ctx.strokeStyle = hairI; ctx.lineWidth = HR * 0.16; ctx.lineCap = 'round';
+    line(headX + HR * 0.14, headY - HR * 0.02, headX + HR * 0.82, headY + HR * 0.14);
+    // eye
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.ellipse(headX + HR * 0.52, headY + HR * 0.22, HR * 0.2, HR * 0.13, 0.25, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = skinI; ctx.lineWidth = HR * 0.05; ctx.stroke();
+    ctx.fillStyle = '#2a2018'; dot(headX + HR * 0.6, headY + HR * 0.23, HR * 0.09);   // iris
+    ctx.fillStyle = '#ffffff'; dot(headX + HR * 0.63, headY + HR * 0.19, HR * 0.03);  // glint
+    // nose
+    DYN_path(function () {
+      ctx.moveTo(headX + HR * 0.82, headY + HR * 0.24);
+      ctx.lineTo(headX + HR * 1.0, headY + HR * 0.42);
+      ctx.lineTo(headX + HR * 0.78, headY + HR * 0.46);
+    }, skinD, skinI, HR * 0.05);
+    // set mouth (slight snarl)
+    ctx.strokeStyle = skinI; ctx.lineWidth = HR * 0.1; ctx.lineCap = 'round';
+    DYN_path(function () {
+      ctx.moveTo(headX + HR * 0.42, headY + HR * 0.62);
+      ctx.quadraticCurveTo(headX + HR * 0.66, headY + HR * 0.58, headX + HR * 0.86, headY + HR * 0.64);
+    }, null, skinI, HR * 0.1);
+    // cheek shadow
+    ctx.strokeStyle = 'rgba(120,70,35,0.35)'; ctx.lineWidth = HR * 0.08;
+    line(headX + HR * 0.7, headY + HR * 0.5, headX + HR * 0.6, headY + HR * 0.72);
+
+    // ---------- SPECIAL energy glow (behind front fist) ----------
+    if (atk === 3) {
+      var gg = ctx.createRadialGradient(fHx, fHy, 0.02 * h, fHx, fHy, 0.26 * h);
+      gg.addColorStop(0, 'rgba(180,240,255,0.95)');
+      gg.addColorStop(0.4, 'rgba(90,180,255,0.55)');
+      gg.addColorStop(1, 'rgba(60,120,255,0)');
+      ctx.fillStyle = gg;
+      ctx.beginPath(); ctx.arc(fHx, fHy, 0.26 * h, 0, Math.PI * 2); ctx.fill();
+      // orbiting sparks
+      var oi, oa;
+      ctx.fillStyle = 'rgba(220,250,255,0.9)';
+      for (oi = 0; oi < 5; oi++) {
+        oa = A * 4 + oi * (Math.PI * 2 / 5);
+        dot(fHx + Math.cos(oa) * 0.16 * h, fHy + Math.sin(oa) * 0.16 * h, 0.014 * h);
+      }
+    }
+
+    // ---------- FRONT arm (in front, lead) ----------
+    DYN_arm(fSx, fSy, fEx, fEy, fHx, fHy, 0.135 * w, 0.1 * w, skinL, skinD, skinI, giL, giD, giI, 1, LW);
+
     ctx.restore();
   }
+
   function drawProjectile(p){
     ctx.save(); ctx.translate(p.x,p.y);
     if(p.kind==='ice'){ ctx.fillStyle='#bfe6ff'; ctx.strokeStyle='#6aa6d8'; ctx.lineWidth=2;
