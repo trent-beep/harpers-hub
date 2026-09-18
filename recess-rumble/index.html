@@ -637,6 +637,8 @@
     ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
 
   // ---------- fighters drawing ----------
+  // Per-type high-fidelity renderers (extended as each fighter is upgraded to the baseline).
+  const HERO = { kid: drawHeroKid };
   function drawFighter(f, isGhost){
     const c=f.c, x=f.x, y=f.y, d=f.dir, w=f.w, h=f.h;
     ctx.save(); ctx.translate(x,y); ctx.scale(d,1);
@@ -650,8 +652,9 @@
     const punching = atk&&atk.kind==='punch'&&phase<atk.startup+atk.active;
     const kicking = atk&&atk.kind==='kick'&&phase<atk.startup+atk.active;
     const special = atk&&atk.kind==='special';
-    if(c.hero){
-      drawHeroKid(f, w, h, bob, punching, kicking, special);
+    const heroFn = HERO[c.type];
+    if(heroFn){
+      heroFn(f, w, h, bob, punching, kicking, special);
       ctx.restore(); ctx.globalAlpha=1;
       if(!isGhost && f.meter>=100){ ctx.save(); ctx.globalAlpha=0.5+0.3*Math.sin(performance.now()/120);
         ctx.strokeStyle='#ffd23b'; ctx.lineWidth=3; ctx.beginPath(); ctx.ellipse(x,y-h*0.5,w*0.7,h*0.62,0,0,7); ctx.stroke(); ctx.restore(); }
