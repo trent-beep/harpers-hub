@@ -46,6 +46,25 @@
   .hint{opacity:.6;font-size:clamp(12px,3vw,15px);font-weight:600;}
   kbd{display:inline-block;min-width:1.2em;text-align:center;border:1px solid #55608a;border-radius:5px;
     padding:1px 6px;background:#222a44;font-family:inherit;font-size:.92em;}
+  /* on-screen touch controls (phone) */
+  #tpad{position:absolute;inset:0;pointer-events:none;z-index:6;display:none;}
+  body.touch #tpad.on{display:block;}
+  .tp{position:absolute;pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none;
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:26px;color:#fff;
+    width:62px;height:62px;border:2px solid rgba(255,255,255,.55);border-radius:50%;
+    background:rgba(22,28,46,.48);box-shadow:0 3px 0 rgba(0,0,0,.35);}
+  .tp:active{background:rgba(255,210,59,.75);color:#20263a;transform:translateY(2px);}
+  .tp.small{width:50px;height:50px;font-size:20px;}
+  #tp_left{left:16px;bottom:22px;} #tp_right{left:94px;bottom:22px;}
+  #tp_up{left:55px;bottom:100px;} #tp_down{left:176px;bottom:22px;}
+  #tp_k{right:16px;bottom:22px;} #tp_p{right:94px;bottom:22px;}
+  #tp_sp{right:55px;bottom:100px;width:66px;height:66px;} #tp_blk{right:176px;bottom:22px;}
+  .tp.p{background:rgba(232,69,43,.6);} .tp.k{background:rgba(47,111,214,.62);}
+  .tp.sp{background:rgba(255,210,59,.62);color:#20263a;} .tp.blk{background:rgba(90,100,130,.6);font-size:17px;}
+  #rotate{display:none;}
+  @media (pointer:coarse) and (orientation:portrait){
+    #rotate{display:block;position:absolute;top:6px;left:0;right:0;z-index:7;text-align:center;
+      font-size:13px;font-weight:800;color:#ffd23b;background:rgba(14,18,32,.72);padding:5px;} }
 </style>
 
 <div id="wrap"><div id="stage">
@@ -77,7 +96,22 @@
     </div>
     <div class="card">Build your <b>super meter</b> by landing and blocking hits. When it's full, your
       <b>Special</b> unleashes a signature move. First to win <b>2 rounds</b> takes the match.</div>
+    <div class="card"><b>On a phone?</b> On-screen buttons appear automatically — a D-pad (◄ ► ▲ ▼) on the
+      left and <b>P</b>unch / <b>K</b>ick / <b>SP</b>ecial / <b>BLK</b> on the right (best played sideways,
+      1 player vs the CPU).</div>
     <button class="btn" id="btnBack">BACK</button>
+  </div>
+
+  <div id="rotate">↻ Rotate your phone sideways for the best view</div>
+  <div id="tpad">
+    <button class="tp" id="tp_left"  data-k="a">◄</button>
+    <button class="tp" id="tp_right" data-k="d">►</button>
+    <button class="tp" id="tp_up"    data-k="w">▲</button>
+    <button class="tp small" id="tp_down" data-k="s">▼</button>
+    <button class="tp atk p"  id="tp_p"  data-k="f">P</button>
+    <button class="tp atk k"  id="tp_k"  data-k="g">K</button>
+    <button class="tp atk sp" id="tp_sp" data-k="h">SP</button>
+    <button class="tp blk"    id="tp_blk" data-k="block1">BLK</button>
   </div>
 </div></div>
 
@@ -138,8 +172,8 @@
   // ---------- input ----------
   const down=new Set();
   const MAP=[
-    {left:'a',right:'d',up:'w',down:'s',punch:'f',kick:'g',special:'h'},
-    {left:'arrowleft',right:'arrowright',up:'arrowup',down:'arrowdown',punch:',',kick:'.',special:'/'},
+    {left:'a',right:'d',up:'w',down:'s',punch:'f',kick:'g',special:'h',block:'block1'},
+    {left:'arrowleft',right:'arrowright',up:'arrowup',down:'arrowdown',punch:',',kick:'.',special:'/',block:'block2'},
   ];
   const GAMEKEYS=new Set(['arrowleft','arrowright','arrowup','arrowdown',' ',',','.','/']);
   function norm(k){ return k.length===1? k.toLowerCase() : k.toLowerCase(); }
@@ -147,11 +181,21 @@
     if(GAMEKEYS.has(k)) e.preventDefault();
     if(!e.repeat){ down.add(k); onPress(k, e.key); } });
   window.addEventListener('keyup',e=>{ down.delete(norm(e.key)); });
+  // ---- on-screen touch controls (phone): drive Player 1's inputs ----
+  if(matchMedia('(pointer:coarse)').matches) document.body.classList.add('touch');
+  const tpadEl=document.getElementById('tpad');
+  document.querySelectorAll('#tpad .tp').forEach(el=>{
+    const k=el.dataset.k;
+    const dn=e=>{ e.preventDefault(); audioInit(); down.add(k); onPress(k); };
+    const up=e=>{ if(e&&e.cancelable) e.preventDefault(); down.delete(k); };
+    el.addEventListener('pointerdown',dn);
+    el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up); el.addEventListener('pointerleave',up);
+  });
   function readInput(pi, f, foe){
     if(f && f.cpu) return cpuInput(f,foe);
     const m=MAP[pi];
     return { left:down.has(m.left), right:down.has(m.right), up:down.has(m.up), down:down.has(m.down),
-      punch:down.has(m.punch), kick:down.has(m.kick), special:down.has(m.special) };
+      punch:down.has(m.punch), kick:down.has(m.kick), special:down.has(m.special), block:down.has(m.block) };
   }
 
   // ---------- state ----------
@@ -311,7 +355,7 @@
     f.crouch = f.onGround && inp.down && !f.attack && f.hitstun<=0;
     // blocking: grounded, holding away from foe, not attacking
     const backKey = f.dir>0? inp.left : inp.right;
-    f.blocking = f.onGround && backKey && !f.attack && f.hitstun<=0;
+    f.blocking = f.onGround && (backKey || inp.block) && !f.attack && f.hitstun<=0;
 
     // horizontal move
     if(f.hitstun>0){ /* knocked */ }
@@ -447,6 +491,7 @@
 
   // ---------- render ----------
   function render(){
+    if(tpadEl) tpadEl.classList.toggle('on', state!=='title');   // show touch pad off the title/help screen
     const ox=shakeAmt>0?rand(-shakeAmt,shakeAmt):0, oy=shakeAmt>0?rand(-shakeAmt,shakeAmt):0;
     ctx.save(); ctx.translate(ox,oy);
     drawStageBg();
