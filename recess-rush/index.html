@@ -96,12 +96,15 @@
       <h1>RECESS&nbsp;<span class="m">RUSH</span></h1>
       <div class="tag">it's a mad dash across the schoolyard</div>
       <div class="card">
-        Run and jump across the yard. Grab <b>apples</b> and <b>gold stars</b> for
-        points, <b>bounce</b> on grumpy textbooks to squash them, mind the gaps —
-        and ring the <b>school bell</b> at the end to win.
+        Run and jump across the yard. Grab <b>apples</b> and <b>gold stars</b>,
+        <b>bounce</b> on textbooks, ride the <b>trampolines</b>, mind the gaps and
+        thumbtacks — and ring the <b>school bell</b> to clear each level.
         <div class="keys">
           <span><span class="k">◄</span> <span class="k">►</span> / <span class="k">A</span> <span class="k">D</span></span><span>run</span>
-          <span><span class="k">Space</span> / <span class="k">▲</span> / <span class="k">W</span></span><span>jump (hold for higher)</span>
+          <span>tap <span class="k">JUMP</span></span><span>jump (hold higher)</span>
+          <span>double-tap</span><span><b>big jump</b></span>
+          <span>triple-tap</span><span><b>jump + flip</b> (bonus)</span>
+          <span>hold in air</span><span><b>ground-pound drop</b></span>
         </div>
       </div>
       <div class="btnrow"><button class="play" id="startBtn">PLAY ►</button></div>
@@ -144,12 +147,13 @@
   const PW=28, PH=44;
 
   // ---------- level ----------
-  let solids, apples, stars, enemies, hazards, goal, floaters, levelW, spawn;
+  let solids, apples, stars, enemies, hazards, tramps, goal, floaters, levelW, spawn;
   function G(x,w){ return {x, y:GROUND_Y, w, h:DH-GROUND_Y+40}; }          // ground slab (with gaps)
   function plat(x,y,w){ return {x, y, w, h:22, book:true}; }               // floating stacked-book platform
   function mkEnemy(x,min,max){ return {type:'book', x, y:GROUND_Y-32, w:34, h:32, vx:70, min, max, dead:false, deadT:0, t:Math.random()*6}; }
   function mkPlane(x,baseY,min,max){ return {type:'plane', x, y:baseY, w:30, h:18, baseY, amp:26, phase:Math.random()*6, vx:100, min, max, dead:false, deadT:0, t:0}; }
   function mkTack(x){ return {x, y:GROUND_Y-14, w:20, h:14}; }             // thumbtack hazard on the ground
+  function mkTramp(x,y){ return {x, y:(y||GROUND_Y-12), w:56, h:12}; }     // gym-mat trampoline
   const a=(x,y)=>({x,y,got:false});
   const gApples=arr=>arr.map(x=>a(x,GROUND_Y-40));
 
@@ -163,7 +167,7 @@
         .concat([a(600,372),a(980,292),a(1400,362),a(2050,322),a(2800,332),a(3160,262)]),
       stars:[a(1600,250),a(3140,250),a(2360,150)],
       enemies:[ mkEnemy(650,300,880),mkEnemy(1200,1130,1560),mkEnemy(2560,2460,2860),mkEnemy(2700,2620,3000),mkEnemy(3700,3560,4000) ],
-      hazards:[],
+      hazards:[], tramps:[ mkTramp(1300),mkTramp(2500) ],
       goal:{x:4360,y:GROUND_Y}, levelW:4600, spawn:{x:60,y:GROUND_Y-PH-2},
     }),
     ()=>({
@@ -175,7 +179,7 @@
       stars:[a(1720,250),a(3220,240)],
       enemies:[ mkEnemy(500,300,820),mkEnemy(1300,1050,1650),mkEnemy(2100,1850,2680),mkEnemy(3300,2920,3900),
         mkPlane(1500,300,900,1900),mkPlane(3100,280,2900,3900) ],
-      hazards:[ mkTack(680),mkTack(2350),mkTack(3650) ],
+      hazards:[ mkTack(680),mkTack(2350),mkTack(3650) ], tramps:[ mkTramp(1150),mkTramp(3000) ],
       goal:{x:4200,y:GROUND_Y}, levelW:4500, spawn:{x:60,y:GROUND_Y-PH-2},
     }),
     ()=>({
@@ -187,22 +191,47 @@
       stars:[a(1500,270),a(2780,260),a(3540,260)],
       enemies:[ mkEnemy(400,300,700),mkEnemy(2400,2300,2560),mkEnemy(3300,2980,3900),
         mkPlane(1300,290,900,1900),mkPlane(2200,300,1900,2600),mkPlane(3400,280,3000,4000) ],
-      hazards:[ mkTack(500),mkTack(1050),mkTack(2400),mkTack(3600) ],
+      hazards:[ mkTack(500),mkTack(1050),mkTack(2400),mkTack(3600) ], tramps:[ mkTramp(600),mkTramp(3300) ],
       goal:{x:4300,y:GROUND_Y}, levelW:4600, spawn:{x:60,y:GROUND_Y-PH-2},
+    }),
+    ()=>({
+      solids:[ G(0,620),G(770,420),G(1350,420),G(1940,520),G(2620,1400),
+        plat(560,400,110),plat(1120,340,120),plat(1250,420,110),plat(1700,360,120),
+        plat(2000,320,120),plat(2360,380,120),plat(2900,340,130),plat(3300,300,120) ],
+      apples: gApples([200,340,560,820,1000,1420,1600,2000,2100,2300,2700,2800,3000,3200,3400,3600,3800])
+        .concat([a(1160,302),a(2040,282),a(2940,302),a(3340,262)]),
+      stars:[a(2000,290),a(3320,250)],
+      enemies:[ mkEnemy(900,780,1180),mkEnemy(2100,1950,2450),mkEnemy(3200,2640,3800),
+        mkPlane(1500,290,900,1900),mkPlane(2500,300,2000,3000),mkPlane(3400,280,2900,3900) ],
+      hazards:[ mkTack(500),mkTack(2050),mkTack(3400) ], tramps:[ mkTramp(400),mkTramp(2100),mkTramp(3000) ],
+      goal:{x:3900,y:GROUND_Y}, levelW:4300, spawn:{x:60,y:GROUND_Y-PH-2},
+    }),
+    ()=>({
+      solids:[ G(0,540),G(710,360),G(1250,360),G(1790,360),G(2330,360),G(2850,1500),
+        plat(575,410,110),plat(1100,380,110),plat(1640,360,110),plat(2180,380,110),plat(2720,410,110),
+        plat(900,300,110),plat(1430,290,110),plat(1980,300,110),plat(2500,290,110),plat(3100,320,120),plat(3500,300,120) ],
+      apples: gApples([200,300,760,820,1300,1360,1840,1900,2380,2440,2900,3000,3200,3400,3600,3800,4000])
+        .concat([a(960,282),a(1500,272),a(2050,282),a(2550,272),a(3140,302)]),
+      stars:[a(1450,270),a(2500,270),a(3520,260)],
+      enemies:[ mkEnemy(300,150,480),mkEnemy(3300,2870,3900),
+        mkPlane(1000,290,600,1600),mkPlane(1800,300,1300,2300),mkPlane(2600,290,2100,3100),mkPlane(3500,280,3000,4100) ],
+      hazards:[ mkTack(400),mkTack(900),mkTack(2400),mkTack(3300),mkTack(3800) ], tramps:[ mkTramp(300),mkTramp(2450),mkTramp(3200) ],
+      goal:{x:4200,y:GROUND_Y}, levelW:4600, spawn:{x:60,y:GROUND_Y-PH-2},
     }),
   ];
   function loadLevel(i){
     const L=LEVELS[i]();
     solids=L.solids; apples=L.apples; stars=L.stars; enemies=L.enemies;
-    hazards=L.hazards; goal=L.goal; levelW=L.levelW; spawn=L.spawn; floaters=[];
-    p={ x:spawn.x, y:spawn.y, vx:0, vy:0, dir:1, onGround:true, air:0 };
+    hazards=L.hazards; tramps=L.tramps||[]; goal=L.goal; levelW=L.levelW; spawn=L.spawn; floaters=[];
+    p={ x:spawn.x, y:spawn.y, vx:0, vy:0, dir:1, onGround:true, air:0, spin:0, spinning:false, flipped:false, pounding:false };
     lastSafeX=spawn.x; lastSafeY=spawn.y; cam=0; invuln=0; coyote=0; jumpBuf=0;
-    levelBanner=1.6;
+    airChain=0; airPress=false; shake=0; levelBanner=1.6;
   }
 
   // ---------- state ----------
   let state='menu', cam=0, score=0, appleCount=0, starCount=0, lives=3, best=0, level=0, levelBanner=0;
   let p, invuln=0, coyote=0, jumpBuf=0, jumpHeld=false, runPhase=0, lastSafeX=60, lastSafeY=0;
+  let shake=0, airChain=0, airPress=false, airPressAt=0;   // gestures: big jump / flip / ground-pound
   const keys={left:false,right:false};
   const params=new URLSearchParams(location.search);
   const startLevel=clamp(parseInt(params.get('lvl')||'0',10)||0,0,LEVELS.length-1);
@@ -213,21 +242,48 @@
     level=startLevel; loadLevel(level);
   }
 
-  // ---------- input ----------
-  function jumpInput(){ jumpBuf=0.12; jumpHeld=true; }
+  // ---------- input & moves ----------
+  // Jump gestures on the JUMP control:
+  //   tap            -> normal jump (hold for higher)
+  //   double-tap     -> BIG jump (extra mid-air lift)
+  //   triple-tap     -> jump + FLIP (style bonus)
+  //   tap-and-hold   -> ground-pound DROP (slam down, squash below)
+  const HOLD_MS=150;
+  function jumpPress(){
+    if(state!=='play') return;
+    jumpHeld=true;
+    if(p.onGround){ jumpBuf=0.12; airChain=1; p.flipped=false; airPress=false; }
+    else { airPress=true; airPressAt=performance.now(); }   // resolve on release (tap) or hold (pound)
+  }
+  function jumpRelease(){ jumpHeld=false; if(airPress){ resolveAirTap(); airPress=false; } }
+  function poundInput(){ if(state==='play' && !p.onGround && !p.pounding) startPound(); }
+  function resolveAirTap(){ airChain++; if(airChain===2) bigJump(); else if(airChain>=3) doFlip(); }
+  function bigJump(){ p.vy=Math.min(p.vy,-JUMP*0.95); pop('BIG!',p.x+PW/2,p.y-6,'#2f7dd6'); }
+  function doFlip(){ if(p.flipped) return; p.flipped=true; p.spinning=true; p.spin=0.0001;
+    if(p.vy>-JUMP*0.4) p.vy=-JUMP*0.55; score+=40; pop('FLIP +40',p.x+PW/2,p.y-6,'#7b5cff'); }
+  function startPound(){ p.pounding=true; p.spinning=false; p.spin=0; p.vx=0; p.vy=MAXVY;
+    pop('DROP!',p.x+PW/2,p.y-6,'#e8452b'); }
+  function poundImpact(){
+    p.pounding=false; shake=reduceMotion?3:9;
+    const cxp=p.x+PW/2, fy=p.y+PH;
+    for(const e of enemies){ if(e.dead) continue;
+      if(e.type!=='plane' && Math.abs((e.x+e.w/2)-cxp)<72 && Math.abs(e.y-fy)<46){ e.dead=true; e.deadT=0; score+=50; pop('+50',e.x+e.w/2,e.y-6,'#2e7d32'); } }
+    pop('SLAM!',cxp,p.y+PH-30,'#e8452b');
+  }
   window.addEventListener('keydown',e=>{
     if(e.repeat) return;
     const k=e.key;
     if(k==='ArrowLeft'||k==='a'||k==='A'){ keys.left=true; e.preventDefault(); }
     else if(k==='ArrowRight'||k==='d'||k==='D'){ keys.right=true; e.preventDefault(); }
-    else if(k===' '||k==='ArrowUp'||k==='w'||k==='W'){ if(state==='play'){ jumpInput(); } e.preventDefault(); }
+    else if(k===' '||k==='ArrowUp'||k==='w'||k==='W'){ jumpPress(); e.preventDefault(); }
+    else if(k==='ArrowDown'||k==='s'||k==='S'){ poundInput(); e.preventDefault(); }
     if((k==='Enter'||k===' ') && state!=='play') startGame();
   });
   window.addEventListener('keyup',e=>{
     const k=e.key;
     if(k==='ArrowLeft'||k==='a'||k==='A') keys.left=false;
     else if(k==='ArrowRight'||k==='d'||k==='D') keys.right=false;
-    else if(k===' '||k==='ArrowUp'||k==='w'||k==='W') jumpHeld=false;
+    else if(k===' '||k==='ArrowUp'||k==='w'||k==='W') jumpRelease();
   });
   function bindHold(el,onDown,onUp){
     const d=e=>{ e.preventDefault(); onDown(); };
@@ -237,7 +293,7 @@
   }
   bindHold(document.getElementById('padLeft'),()=>keys.left=true,()=>keys.left=false);
   bindHold(document.getElementById('padRight'),()=>keys.right=true,()=>keys.right=false);
-  bindHold(document.getElementById('padJump'),()=>{ if(state==='play') jumpInput(); },()=>jumpHeld=false);
+  bindHold(document.getElementById('padJump'),jumpPress,jumpRelease);
 
   // ---------- helpers ----------
   const aabb=(a,b)=> a.x<b.x+b.w && a.x+a.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y;
@@ -245,15 +301,18 @@
 
   // ---------- update ----------
   function update(dt){
-    // horizontal
-    if(keys.left && !keys.right){ p.vx=-RUN; p.dir=-1; }
+    // horizontal (locked during a ground-pound)
+    if(p.pounding){ p.vx=0; }
+    else if(keys.left && !keys.right){ p.vx=-RUN; p.dir=-1; }
     else if(keys.right && !keys.left){ p.vx=RUN; p.dir=1; }
     else p.vx*=0.7;
+    // gesture: JUMP held in the air -> ground-pound drop
+    if(airPress && !p.onGround && performance.now()-airPressAt>HOLD_MS){ startPound(); airPress=false; }
     // jump buffer + coyote
     coyote = p.onGround ? 0.09 : Math.max(0,coyote-dt);
     jumpBuf = Math.max(0,jumpBuf-dt);
     if(jumpBuf>0 && coyote>0){ p.vy=-JUMP; p.onGround=false; coyote=0; jumpBuf=0; }
-    if(!jumpHeld && p.vy<-260) p.vy=-260;            // variable jump height
+    if(!jumpHeld && !p.pounding && p.vy<-260) p.vy=-260;   // variable jump height
     p.vy=clamp(p.vy+GRAV*dt, -JUMP, MAXVY);
 
     // move X, resolve
@@ -261,9 +320,20 @@
     for(const s of solids){ if(aabb(p,s)){ if(p.vx>0) p.x=s.x-PW; else if(p.vx<0) p.x=s.x+s.w; p.vx=0; } }
     if(p.x<0) p.x=0;
     // move Y, resolve
+    const wasAir=!p.onGround;
     p.y+=p.vy*dt; p.onGround=false;
     for(const s of solids){ const box={x:p.x,y:p.y,w:PW,h:PH};
       if(aabb(box,s)){ if(p.vy>0){ p.y=s.y-PH; p.onGround=true; } else if(p.vy<0){ p.y=s.y+s.h; } p.vy=0; } }
+    // trampolines — arriving on one launches you high
+    if(wasAir){ for(const tr of tramps){ const box={x:p.x,y:p.y,w:PW,h:PH};
+      if(aabb(box,tr) && (p.y+PH)-tr.y<24 && (p.y+PH)-tr.y>-6){
+        p.y=tr.y-PH; p.vy=-JUMP*1.18; p.onGround=false; p.pounding=false; p.spinning=false; p.spin=0;
+        airChain=1; p.flipped=false; pop('BOING!',p.x+PW/2,tr.y-8,'#2f8ad6'); break; } } }
+    // landing on solid ground
+    if(p.onGround && wasAir){ airChain=0; p.spinning=false; p.spin=0; if(p.pounding) poundImpact(); }
+    // flip spin animation
+    if(p.spinning){ p.spin+=dt*(Math.PI*2/0.45); if(p.spin>=Math.PI*2){ p.spin=0; p.spinning=false; } }
+    if(shake>0) shake=Math.max(0,shake-dt*40);
     if(p.onGround && Math.abs(p.vx)>10) runPhase+=dt*12; else if(p.onGround) runPhase*=0.6;
     p.air = p.onGround?0:p.air+dt;
 
@@ -336,9 +406,12 @@
   // ---------- render ----------
   const w2s=x=>x-cam;
   function render(){
-    ctx.clearRect(0,0,LVW,DH);
+    const ox=shake>0?(Math.random()*2-1)*shake:0, oy=shake>0?(Math.random()*2-1)*shake:0;
+    ctx.save(); ctx.translate(ox,oy);
+    ctx.clearRect(-12,-12,LVW+24,DH+24);
     drawSky(); drawBackdrop();
     for(const s of solids) drawSolid(s);
+    for(const tr of tramps) drawTramp(w2s(tr.x),tr.y);
     for(const hz of hazards) drawTack(w2s(hz.x),hz.y);
     for(const a of apples) if(!a.got) drawApple(w2s(a.x),a.y);
     for(const s of stars) if(!s.got) drawStar(w2s(s.x),s.y);
@@ -348,8 +421,16 @@
     for(const f of floaters){ const a=clamp(1-f.t/f.life,0,1);
       ctx.font='700 20px Trebuchet MS, sans-serif'; ctx.textAlign='center';
       ctx.fillStyle=hexA(f.col||'#1c2a3a',a); ctx.fillText(f.txt, w2s(f.x), f.y-f.t*30); ctx.textAlign='left'; }
+    ctx.restore();                    // end shake transform (HUD stays steady)
     if(state==='play') drawHUD();
     if(levelBanner>0) drawBanner();
+  }
+  function drawTramp(x,y){
+    ctx.fillStyle='#2f8ad6'; roundRect(x,y,56,12,4); ctx.fill();          // mat
+    ctx.fillStyle='#1c6fb0'; ctx.fillRect(x+3,y+8,50,3);
+    ctx.strokeStyle='#8a8f96'; ctx.lineWidth=2;                            // springs/legs
+    for(let i=8;i<52;i+=12){ ctx.beginPath(); ctx.moveTo(x+i,y+12); ctx.lineTo(x+i,y+20); ctx.stroke(); }
+    ctx.fillStyle='rgba(255,255,255,.35)'; ctx.fillRect(x+4,y+2,48,3);
   }
   function drawBanner(){
     const alpha=clamp(levelBanner>1.3?(1.6-levelBanner)/0.3:Math.min(1,levelBanner/0.4),0,1);
@@ -465,7 +546,11 @@
   function drawPlayer(){
     if(invuln>0 && Math.floor(invuln*16)%2===0) return;   // blink when hit
     const x=w2s(p.x)+PW/2, y=p.y, air=!p.onGround;
-    ctx.save(); ctx.translate(x,y); ctx.scale(p.dir,1);
+    ctx.save();
+    ctx.translate(x,y+18);                       // pivot near sprite centre
+    if(p.spin) ctx.rotate(p.spin*p.dir);         // flip trick
+    ctx.scale(p.dir,1);
+    ctx.translate(0,-18);
     const swing=air?0.6:Math.sin(runPhase)*(Math.abs(p.vx)>10?1:0);
     // backpack
     ctx.fillStyle='#8a5a2b'; roundRect(-14,10,9,20,3); ctx.fill();
