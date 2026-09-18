@@ -6,6 +6,18 @@
 <title>Slope Panic</title>
 <meta name="description" content="A SkiFree tribute — ski an endless slope, dodge the trees and outrun the Abominable Snow Monster.">
 <meta name="theme-color" content="#0e1730">
+
+<!-- Social / share cards (marketing foundation).
+     TODO before launch: replace icon-512.png with a 1200x630 hero image and
+     switch twitter:card to summary_large_image. -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Slope Panic">
+<meta property="og:description" content="Ski an endless slope, dodge the trees, and outrun the Abominable Snow Monster. A SkiFree tribute you can play in your browser or add to your home screen.">
+<meta property="og:image" content="icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Slope Panic">
+<meta name="twitter:description" content="Ski an endless slope and outrun the yeti. Free, no download — add it to your home screen.">
+<meta name="twitter:image" content="icon-512.png">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -684,6 +696,16 @@
     } else boot({});
   }catch(e){ boot({}); }
 })();
+</script>
+
+<script>
+  // Register the service worker so the game installs and runs offline once
+  // added to the home screen. Silently ignored where unsupported.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
 </script>
 
 </body>
