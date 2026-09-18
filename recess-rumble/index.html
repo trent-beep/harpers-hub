@@ -638,7 +638,7 @@
 
   // ---------- fighters drawing ----------
   // Per-type high-fidelity renderers (extended as each fighter is upgraded to the baseline).
-  const HERO = { kid: drawHeroKid, bully: drawHeroBully, beast: drawHeroBeast };
+  const HERO = { kid: drawHeroKid, bully: drawHeroBully, beast: drawHeroBeast, cat: drawHeroCat, dog: drawHeroDog, bird: drawHeroBird };
   function drawFighter(f, isGhost){
     const c=f.c, x=f.x, y=f.y, d=f.dir, w=f.w, h=f.h;
     ctx.save(); ctx.translate(x,y); ctx.scale(d,1);
@@ -1898,6 +1898,763 @@
     FROSTBITE_C_tuft(lEx - w * 0.02, lEy + w * 0.14, h * 0.09, Math.PI * 0.52 + Math.sin(t * 1.6) * 0.18, w * 0.05, fm, fmd);
     // big lead fist
     FROSTBITE_C_hand(lFx, lFy, w * 0.21, 1, fl, fd);
+  }
+
+
+  // ---- drawHeroCat (design panel "WHISKERS_A", original) ----
+  // WHISKERS_A — original ginger cat brawler, built from shaded ball()/capsule() volumes.
+  function WHISKERS_A_fist(x,y,r,L,D,ink,claws,dir){
+    ball(x,y,r,L,D,ink);
+    // fingerless-glove wrist band
+    ctx.save();
+    ctx.lineWidth=r*0.85; ctx.strokeStyle='#33333c'; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(x-dir*r*0.15,y+r*0.55); ctx.lineTo(x-dir*r*0.95,y+r*0.25); ctx.stroke();
+    ctx.restore();
+    if(claws){
+      ctx.save(); ctx.fillStyle='#f4ecd6'; ctx.strokeStyle=ink; ctx.lineWidth=r*0.11; ctx.lineJoin='round';
+      for(var i=0;i<3;i++){
+        var yy=y-r*0.5+i*r*0.5;
+        ctx.beginPath();
+        ctx.moveTo(x+dir*r*0.55, yy-r*0.15);
+        ctx.lineTo(x+dir*r*1.3, yy);
+        ctx.lineTo(x+dir*r*0.55, yy+r*0.15);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+
+  function WHISKERS_A_ear(bx,by,sx,L,D,ink,inner,hr,t){
+    var tw=Math.sin(t*3.0+sx)*0.04*hr;
+    var ax=bx+sx*0.12*hr+tw, ay=by-1.0*hr;
+    var blx=bx-0.32*hr, bly=by+0.14*hr;
+    var brx=bx+0.34*hr, bry=by-0.02*hr;
+    var g=ctx.createLinearGradient(ax,ay,bx,by);
+    g.addColorStop(0,L); g.addColorStop(1,D);
+    ctx.beginPath(); ctx.moveTo(blx,bly); ctx.lineTo(ax,ay); ctx.lineTo(brx,bry); ctx.closePath();
+    ctx.fillStyle=g; ctx.fill();
+    ctx.lineWidth=hr*0.09; ctx.strokeStyle=ink; ctx.lineJoin='round'; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(blx*0.35+bx*0.65, bly*0.35+by*0.65);
+    ctx.lineTo(ax*0.6+bx*0.4, ay*0.55+by*0.45);
+    ctx.lineTo(brx*0.35+bx*0.65, bry*0.35+by*0.65);
+    ctx.closePath(); ctx.fillStyle=inner; ctx.fill();
+  }
+
+  function WHISKERS_A_arm(sx,sy,ex,ey,fx,fy,uR,lR,fR,L,D,gL,gD,ink,claws,dir){
+    capsule(sx,sy,uR,ex,ey,lR,L,D,ink);        // upper arm (fur)
+    ball(ex,ey,lR*1.02,L,D,ink);               // elbow joint
+    capsule(ex,ey,lR,fx,fy,fR*0.8,gL,gD,ink);  // forearm (glove)
+    WHISKERS_A_fist(fx,fy,fR,L,D,ink,claws,dir);
+  }
+
+  function WHISKERS_A_leg(hx,hy,kx,ky,ax,ay,tx,ty,tR,kR,aR,L,D,padL,ink){
+    capsule(hx,hy,tR,kx,ky,kR,L,D,ink);        // thigh
+    capsule(kx,ky,kR,ax,ay,aR,L,D,ink);        // shin
+    ball(kx,ky,kR*0.95,L,D,null);              // knee highlight
+    capsule(ax,ay,aR,tx,ty,aR*0.7,L,D,ink);    // foot
+    ctx.save();
+    ctx.beginPath(); ctx.arc(tx,ty,aR*0.5,0,7);
+    ctx.fillStyle=padL; ctx.fill();
+    ctx.strokeStyle=ink; ctx.lineWidth=aR*0.22; ctx.stroke();
+    ctx.restore();
+  }
+
+  function WHISKERS_A_tail(bx,by,w,h,t,L,D,tuftL,ink){
+    var f1=Math.sin(t*1.6)*0.04*h;
+    var f2=Math.sin(t*1.6+0.7)*0.06*h;
+    var f3=Math.sin(t*1.6+1.4)*0.09*h;
+    var p=[
+      [bx,by,0.055*h],
+      [bx-0.14*w,by+0.02*h+f1*0.3,0.05*h],
+      [bx-0.24*w,by-0.12*h+f2,0.04*h],
+      [bx-0.22*w,by-0.30*h+f3,0.03*h],
+      [bx-0.08*w,by-0.42*h+f3*1.3,0.022*h],
+      [bx+0.06*w,by-0.46*h+f3*1.5,0.016*h]
+    ];
+    for(var i=0;i<p.length-1;i++){
+      capsule(p[i][0],p[i][1],p[i][2],p[i+1][0],p[i+1][1],p[i+1][2],L,D,ink);
+    }
+    var tip=p[p.length-1];
+    ball(tip[0],tip[1],0.036*h,tuftL,D,ink);
+  }
+
+  function WHISKERS_A_head(hx,hy,hr,L,D,bL,bD,ink,eye,t,dir,attack,blocking){
+    // rear ear (behind, in shadow)
+    WHISKERS_A_ear(hx-0.42*hr, hy-0.5*hr, -1, D, '#5c3a15', ink, '#b56a58', hr, t);
+    // skull
+    ball(hx,hy,hr,L,D,ink);
+    // cheek fur tufts
+    ctx.save(); ctx.strokeStyle=D; ctx.lineWidth=hr*0.08; ctx.lineCap='round';
+    for(var i=-1;i<2;i++){
+      ctx.beginPath();
+      ctx.moveTo(hx-hr*0.55, hy+i*0.22*hr);
+      ctx.lineTo(hx-hr*1.05, hy+i*0.30*hr-0.05*hr);
+      ctx.stroke();
+    }
+    ctx.restore();
+    // front ear (lit)
+    WHISKERS_A_ear(hx+0.34*hr, hy-0.56*hr, 1, L, D, ink, '#e6907c', hr, t);
+    // muzzle
+    var mx=hx+0.5*hr, my=hy+0.34*hr;
+    ball(mx,my,0.52*hr,bL,bD,ink);
+    ball(mx+0.34*hr,my-0.06*hr,0.12*hr,'#d0604e','#7f2a20',ink); // nose
+    // grin + fangs
+    ctx.save();
+    ctx.strokeStyle=ink; ctx.lineWidth=hr*0.07; ctx.lineCap='round';
+    ctx.beginPath();
+    ctx.moveTo(mx+0.32*hr,my+0.14*hr);
+    ctx.quadraticCurveTo(mx+0.05*hr,my+0.36*hr, mx-0.35*hr,my+0.16*hr);
+    ctx.stroke();
+    ctx.fillStyle='#fdfaf0'; ctx.lineWidth=hr*0.04;
+    var fangs=[[mx+0.18*hr,my+0.2*hr],[mx-0.1*hr,my+0.26*hr]];
+    for(var k=0;k<2;k++){
+      ctx.beginPath();
+      ctx.moveTo(fangs[k][0]-0.06*hr,fangs[k][1]);
+      ctx.lineTo(fangs[k][0]+0.06*hr,fangs[k][1]);
+      ctx.lineTo(fangs[k][0],fangs[k][1]+0.17*hr);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+    ctx.restore();
+    // eyes
+    var ex=hx+0.2*hr, ey=hy-0.14*hr, er=0.24*hr;
+    function drawEyeLocal(x,y,r){
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(x-r*1.1,y+r*0.1);
+      ctx.quadraticCurveTo(x, y-r*1.0, x+r*1.2, y-r*0.1);
+      ctx.quadraticCurveTo(x+r*0.2, y+r*0.8, x-r*1.1, y+r*0.1);
+      ctx.closePath();
+      ctx.fillStyle='#f2f7e6'; ctx.fill();
+      ctx.save(); ctx.clip();
+      var ig=ctx.createRadialGradient(x+r*0.1,y-r*0.1,r*0.1,x,y,r*1.1);
+      ig.addColorStop(0,'#a8ee74'); ig.addColorStop(1,eye);
+      ctx.fillStyle=ig; ctx.beginPath(); ctx.arc(x+r*0.05,y,r*0.85,0,7); ctx.fill();
+      ctx.fillStyle='#181008'; ctx.beginPath();
+      ctx.ellipse(x+r*0.05,y,r*0.16,r*0.8,0,0,7); ctx.fill();
+      ctx.restore();
+      ctx.beginPath();
+      ctx.moveTo(x-r*1.1,y+r*0.1);
+      ctx.quadraticCurveTo(x, y-r*1.0, x+r*1.2, y-r*0.1);
+      ctx.quadraticCurveTo(x+r*0.2, y+r*0.8, x-r*1.1, y+r*0.1);
+      ctx.closePath();
+      ctx.lineWidth=r*0.18; ctx.strokeStyle=ink; ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(x+r*0.35,y-r*0.35,r*0.16,0,7); ctx.fill();
+      ctx.restore();
+    }
+    // angry cocky brow
+    ctx.save(); ctx.strokeStyle=D; ctx.lineWidth=hr*0.11; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(ex-0.22*hr,ey-0.36*hr); ctx.lineTo(ex+0.5*hr,ey-0.14*hr); ctx.stroke();
+    ctx.restore();
+    drawEyeLocal(hx-0.16*hr, ey+0.03*hr, er*0.68); // far eye hint
+    drawEyeLocal(ex, ey, er);                       // near eye
+    // whiskers
+    ctx.save(); ctx.strokeStyle='rgba(40,20,10,0.75)'; ctx.lineWidth=hr*0.045; ctx.lineCap='round';
+    var wob=Math.sin(t*2.0)*0.05*hr;
+    for(var j=0;j<3;j++){
+      var yo=(j-1)*0.14*hr;
+      ctx.beginPath();
+      ctx.moveTo(mx-0.05*hr, my+0.02*hr+yo*0.5);
+      ctx.quadraticCurveTo(mx+0.5*hr, my+yo, mx+1.1*hr, my+yo*1.6+wob);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(mx-0.05*hr, my+0.05*hr+yo*0.5);
+      ctx.quadraticCurveTo(mx+0.4*hr, my+0.2*hr+yo, mx+1.0*hr, my+0.28*hr+yo*1.4-wob);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawHeroCat(f,w,h,bob,punching,kicking,special){
+    var t=(f&&f.anim)||0;
+    var crouch=!!(f&&f.crouch), blocking=!!(f&&f.blocking);
+    var attack=!!(punching||special);
+    var ink='#241206';
+    var fL='#cf9142', fD='#7c4f1e';
+    var bL='#edd199', bD='#c98a3a';
+    var gL='#43434e', gD='#191920';
+    var scL='#d24a40', scD='#8f261f';
+    var eye='#4fbf46';
+    var breath=Math.sin(t*2.2);
+    var sway=Math.sin(t*1.6);
+    var bobo=breath*0.008*h + (bob?bob*0.18:0);
+    var lean=(attack?0.03*w:0)+sway*0.006*w;
+
+    var hipY=(crouch?-0.4*h:-0.5*h)+bobo*0.4;
+    var hipX=lean+sway*0.005*w;
+    var chestY=(crouch?-0.62*h:-0.76*h)+bobo;
+    var chestX=lean+0.03*w;
+    var headHr=0.115*h;
+    var headY=(crouch?-0.78*h:-0.9*h)+bobo;
+    var headX=chestX+0.05*w+(attack?0.03*w:0);
+
+    // rear support leg
+    WHISKERS_A_leg(
+      hipX-0.13*w, hipY,
+      -0.27*w, crouch?-0.16*h:-0.24*h,
+      -0.30*w, -0.015*h,
+      -0.14*w, -0.006*h,
+      0.055*h,0.04*h,0.032*h, fL,fD,bL,ink);
+
+    // tail (secondary motion)
+    WHISKERS_A_tail(hipX-0.14*w, hipY+0.02*h, w,h,t, fL,fD, bL, ink);
+
+    // rear arm
+    var rsx=chestX-0.09*w, rsy=chestY-0.02*h;
+    var rex,rey,rfx,rfy;
+    if(attack){ rex=rsx-0.1*w; rey=rsy-0.01*h; rfx=chestX-0.02*w; rfy=chestY+0.09*h; }
+    else if(blocking){ rex=chestX+0.02*w; rey=-0.58*h+bobo; rfx=chestX+0.06*w; rfy=-0.78*h+bobo; }
+    else { rex=chestX-0.12*w; rey=-0.6*h+bobo; rfx=chestX+0.0*w; rfy=-0.5*h+bobo+breath*0.004*h; }
+    WHISKERS_A_arm(rsx,rsy,rex,rey,rfx,rfy,0.05*h,0.035*h,0.05*h,fD,'#5c3a15',gD,'#0f0f14',ink,false,1);
+
+    // pelvis + torso
+    ball(hipX,hipY,0.09*h,fL,fD,ink);
+    capsule(hipX,hipY,0.085*h, chestX,chestY,0.11*h, fL,fD,ink);
+    capsule(hipX+0.03*w,hipY-0.01*h,0.05*h, chestX+0.05*w,chestY+0.03*h,0.06*h, bL,bD,null);
+    ball(chestX,chestY,0.115*h,fL,fD,ink);
+    ball(chestX+0.05*w,chestY+0.04*h,0.06*h,bL,bD,null);
+
+    // front leg
+    if(kicking){
+      WHISKERS_A_leg(
+        hipX+0.12*w, hipY,
+        0.32*w, -0.3*h,
+        0.58*w, -0.27*h,
+        0.74*w, -0.28*h,
+        0.055*h,0.04*h,0.032*h, fL,fD,bL,ink);
+    } else {
+      WHISKERS_A_leg(
+        hipX+0.13*w, hipY,
+        0.30*w, crouch?-0.14*h:-0.22*h,
+        0.18*w, -0.015*h,
+        0.34*w, -0.006*h,
+        0.055*h,0.04*h,0.032*h, fL,fD,bL,ink);
+    }
+
+    // martial scarf
+    var nkx=chestX+0.02*w, nky=chestY-0.06*h;
+    ctx.save();
+    var wag=Math.sin(t*2.4)*0.05*h;
+    ctx.beginPath();
+    ctx.moveTo(nkx-0.02*w,nky+0.01*h);
+    ctx.quadraticCurveTo(nkx-0.14*w,nky+0.06*h, nkx-0.2*w,nky+0.18*h+wag);
+    ctx.lineTo(nkx-0.12*w,nky+0.2*h+wag);
+    ctx.quadraticCurveTo(nkx-0.08*w,nky+0.08*h, nkx+0.0*w,nky+0.04*h);
+    ctx.closePath();
+    var sg=ctx.createLinearGradient(nkx,nky,nkx-0.2*w,nky+0.2*h);
+    sg.addColorStop(0,scL); sg.addColorStop(1,scD);
+    ctx.fillStyle=sg; ctx.strokeStyle=ink; ctx.lineWidth=0.018*h; ctx.lineJoin='round';
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+    ball(nkx,nky,0.05*h,scL,scD,ink);
+
+    // neck
+    capsule(chestX,chestY,0.06*h, headX-0.02*w,headY+0.06*h,0.055*h, fL,fD,ink);
+
+    // head
+    WHISKERS_A_head(headX,headY,headHr, fL,fD,bL,bD,ink,eye,t,1,attack,blocking);
+
+    // front (lead) arm
+    var fsx=chestX+0.12*w, fsy=chestY-0.01*h;
+    var fex,fey,ffx,ffy;
+    if(attack){
+      fex=chestX+0.34*w; fey=chestY+0.01*h;
+      ffx=chestX+0.66*w+(special?0.02*w:0); ffy=chestY+0.0*h;
+    } else if(blocking){
+      fex=chestX+0.18*w; fey=-0.6*h+bobo; ffx=chestX+0.22*w; ffy=-0.8*h+bobo;
+    } else if(kicking){
+      fex=chestX+0.22*w; fey=-0.66*h+bobo; ffx=chestX+0.14*w; ffy=-0.56*h+bobo;
+    } else {
+      fex=chestX+0.24*w; fey=-0.58*h+bobo; ffx=chestX+0.34*w; ffy=-0.68*h+bobo+breath*0.005*h;
+    }
+    WHISKERS_A_arm(fsx,fsy,fex,fey,ffx,ffy,0.055*h,0.04*h,0.055*h,fL,fD,gL,gD,ink,attack||kicking,1);
+
+    // special energy at lead paw
+    if(special){
+      ctx.save();
+      var R=0.16*h;
+      var eg=ctx.createRadialGradient(ffx,ffy,0,ffx,ffy,R);
+      eg.addColorStop(0,'rgba(210,255,220,0.95)');
+      eg.addColorStop(0.35,'rgba(110,235,140,0.65)');
+      eg.addColorStop(1,'rgba(60,190,90,0)');
+      ctx.fillStyle=eg; ctx.beginPath(); ctx.arc(ffx,ffy,R,0,7); ctx.fill();
+      ctx.strokeStyle='rgba(200,255,210,0.9)'; ctx.lineWidth=0.012*h; ctx.lineCap='round';
+      for(var s=0;s<6;s++){
+        var a=t*6+s*Math.PI/3;
+        var r0=R*0.5, r1=R*(0.9+0.25*Math.sin(t*8+s));
+        ctx.beginPath();
+        ctx.moveTo(ffx+Math.cos(a)*r0, ffy+Math.sin(a)*r0);
+        ctx.lineTo(ffx+Math.cos(a)*r1, ffy+Math.sin(a)*r1);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+
+  // ---- drawHeroDog (design panel "REX_A", original) ----
+  function REX_A_seg(x1,y1,r1,x2,y2,r2,x3,y3,r3,L,D,ink){
+    capsule(x1,y1,r1,x2,y2,r2,L,D,ink);
+    capsule(x2,y2,r2,x3,y3,r3,L,D,ink);
+    ball(x2,y2,r2*1.02,L,D,ink);
+  }
+  function REX_A_glove(x,y,r,dir,L,D,ink){
+    ball(x-dir*r*0.5,y-r*0.1,r*0.72,L,D,ink);   // cuff / wrist wrap
+    ball(x,y,r,L,D,ink);                          // main mitt
+    ball(x+dir*r*0.12,y+r*0.6,r*0.42,L,D,ink);    // thumb
+    ctx.save();
+    ctx.strokeStyle='rgba(255,238,210,0.45)';
+    ctx.lineWidth=Math.max(1,r*0.16);
+    ctx.beginPath();
+    ctx.arc(x+dir*r*0.15,y,r*0.62,-1.3,1.0);
+    ctx.stroke();
+    ctx.restore();
+  }
+  function REX_A_paw(x,y,r,dir,L,D,ink){
+    ball(x,y,r,L,D,ink);
+    ball(x+dir*r*0.75,y+r*0.12,r*0.62,L,D,ink);
+    ctx.fillStyle=D;
+    for(var i=0;i<3;i++){ dot(x+dir*(r*0.55+i*r*0.42), y+r*0.4, r*0.16); }
+  }
+  function drawHeroDog(f,w,h,bob,punching,kicking,special){
+    var t=f.anim||0, cf=f.crouch?1:0, block=!!f.blocking;
+    var punch=!!punching, kick=!!kicking, spec=!!special, atk=punch||spec;
+    var drop=cf*0.16*h;
+    var breath=Math.sin(t*1.8)*0.012*h;
+    var idle=(!atk&&!kick&&!block);
+    var sway=idle?Math.sin(t*1.8)*0.01*w:0;
+    var lean=idle?Math.sin(t*1.8+0.5)*0.006*h:0;
+    var uy=(bob||0);
+
+    var FUR_L='#8f6638',FUR_M='#6a4a2b',FUR_D='#422c16',INK='#170e06';
+    var BEL_L='#dcc094',BEL_D='#a8865a';
+    var GL='#d94a38',GD='#7a1c12';
+    var COL_D='#20120a',STUD='#e0cf90';
+    var NL='#3a2b22',ND='#080402';
+
+    // shadow
+    ctx.save();
+    ctx.fillStyle='rgba(0,0,0,0.22)';
+    ctx.beginPath();
+    ctx.ellipse(0.05*w,-0.005*h,0.5*w,0.055*h,0,0,6.3);
+    ctx.fill();
+    ctx.restore();
+
+    var hipY=-0.44*h+drop+uy;
+    var shY=-0.76*h+drop+uy-breath;
+    var shX=0.02*w+sway;
+    var footY=-0.02*h;
+
+    // tail (stubby wag)
+    var tw=Math.sin(t*7)*(atk?0.6:1);
+    var tbx=-0.18*w, tby=hipY+0.04*h;
+    var tex=-0.30*w-0.02*w*tw, tey=tby-0.06*h+0.03*h*tw;
+    capsule(tbx,tby,0.06*w, tex,tey,0.035*w, FUR_M,FUR_D,INK);
+    ball(tex,tey,0.042*w,FUR_L,FUR_D,INK);
+
+    // rear leg
+    REX_A_seg(-0.13*w,hipY,0.115*w, -0.33*w,-0.24*h+drop*0.4+uy,0.082*w, -0.36*w,footY,0.06*w, FUR_M,FUR_D,INK);
+    REX_A_paw(-0.36*w,footY+0.01*h,0.085*w,-1,FUR_M,FUR_D,INK);
+
+    // rear arm (chamber / guard)
+    var rsX=-0.13*w+sway, rsY=shY+0.02*h, reX,reY,rwX,rwY;
+    if(atk){ reX=-0.22*w; reY=shY+0.03*h; rwX=-0.03*w; rwY=shY+0.14*h; }
+    else if(block){ reX=0.10*w; reY=shY; rwX=0.13*w; rwY=shY-0.14*h; }
+    else { reX=-0.06*w; reY=shY+0.05*h; rwX=0.06*w+sway; rwY=shY-0.03*h; }
+    REX_A_seg(rsX,rsY,0.085*w, reX,reY,0.07*w, rwX,rwY,0.05*w, FUR_D,'#301e0f',INK);
+    REX_A_glove(rwX,rwY,0.10*w,1,GL,GD,INK);
+
+    // torso
+    capsule(0.0,hipY+0.02*h,0.19*w, shX,shY+0.02*h,0.205*w, FUR_M,FUR_D,INK);
+    ball(0.06*w+sway,shY-0.02*h,0.18*w+breath,FUR_L,FUR_D,INK);   // chest
+    ball(0.10*w,-0.54*h+drop*0.5+uy,0.15*w,BEL_L,BEL_D,null);      // belly
+    ball(0.13*w,shY,0.10*w,FUR_L,FUR_M,null);                      // pec highlight
+
+    // front leg
+    if(kick){
+      REX_A_seg(0.14*w,hipY,0.12*w, 0.46*w,-0.36*h+drop+uy,0.085*w, 0.98*w,-0.40*h+drop+uy,0.065*w, FUR_L,FUR_D,INK);
+      REX_A_paw(1.02*w,-0.40*h+drop+uy,0.10*w,1,FUR_L,FUR_D,INK);
+      ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=0.04*w;
+      line(0.5*w,-0.39*h,0.9*w,-0.40*h);
+    } else {
+      REX_A_seg(0.14*w,hipY,0.12*w, 0.34*w,-0.24*h+drop*0.4+uy,0.088*w, 0.30*w,footY,0.065*w, FUR_L,FUR_D,INK);
+      REX_A_paw(0.30*w,footY+0.01*h,0.09*w,1,FUR_L,FUR_D,INK);
+    }
+
+    // neck
+    var headX=0.12*w+sway*1.5+(punch?0.03*w:0);
+    var headY=-0.90*h+drop+uy-breath+lean;
+    var R=0.155*h;
+    capsule(shX,shY+0.02*h,0.13*w, headX,headY+0.42*R,0.10*w, FUR_M,FUR_D,INK);
+
+    // studded collar
+    var cx=(shX+headX)/2+0.02*w, cy=shY-0.06*h;
+    ctx.save();
+    ctx.translate(cx,cy); ctx.rotate(-0.25);
+    ctx.fillStyle=COL_D; ctx.strokeStyle=INK; ctx.lineWidth=Math.max(1.5,0.012*h);
+    roundRect(-0.15*w,-0.035*h,0.30*w,0.07*h,0.02*h); ctx.fill(); ctx.stroke();
+    ctx.fillStyle=STUD;
+    for(var s=-2;s<=2;s++){ dot(s*0.06*w,0,0.014*h); }
+    ctx.fillStyle='#c9a94e'; ctx.strokeStyle=INK;
+    ctx.beginPath(); ctx.arc(0.02*w,0.05*h,0.028*h,0,6.3); ctx.fill(); ctx.stroke();
+    ctx.restore();
+
+    // head
+    var hx=headX, hy=headY;
+    var ew=Math.sin(t*1.8+1)*0.02*R;
+    capsule(hx-0.15*R,hy-0.55*R,0.22*R, hx-0.6*R,hy+0.35*R+ew,0.12*R, FUR_D,'#2c1c0e',INK); // back ear
+    ball(hx,hy,R,FUR_L,FUR_D,INK);                    // skull
+    ball(hx+0.2*R,hy-0.5*R,0.28*R,FUR_M,FUR_D,INK);   // brow ridge
+    capsule(hx+0.15*R,hy+0.12*R,0.52*R, hx+1.0*R,hy+0.28*R,0.4*R, FUR_L,FUR_M,INK); // muzzle
+    ball(hx+0.5*R,hy+0.2*R,0.5*R,FUR_L,FUR_M,null);
+    ball(hx+0.15*R,hy+0.55*R,0.3*R,FUR_M,FUR_D,INK);  // jowl
+    capsule(hx+0.3*R,hy+0.62*R,0.34*R, hx+1.12*R,hy+0.5*R,0.26*R, FUR_M,FUR_D,INK); // lower jaw
+    ctx.fillStyle='#f5efe0';
+    tri(hx+0.82*R,hy+0.46*R,0.14*R,-0.22*R);          // fangs (underbite, point up)
+    tri(hx+1.02*R,hy+0.42*R,0.13*R,-0.2*R);
+    ball(hx+1.18*R,hy+0.12*R,0.2*R,NL,ND,INK);        // nose
+    ctx.fillStyle='rgba(255,255,255,0.4)'; dot(hx+1.13*R,hy+0.05*R,0.05*R);
+    ctx.strokeStyle=INK; ctx.lineWidth=Math.max(1.2,0.01*h);
+    ctx.beginPath(); ctx.moveTo(hx+0.4*R,hy+0.42*R); ctx.lineTo(hx+1.05*R,hy+0.38*R); ctx.stroke();
+    ctx.fillStyle='#f2ead8'; dot(hx+0.18*R,hy-0.2*R,0.11*R);
+    ctx.fillStyle='#1a120a'; dot(hx+0.22*R,hy-0.18*R,0.07*R);
+    ctx.fillStyle='#f6efdd'; dot(hx+0.5*R,hy-0.18*R,0.14*R);
+    ctx.fillStyle='#1a120a'; dot(hx+0.56*R,hy-0.16*R,0.085*R);
+    ctx.fillStyle='rgba(255,255,255,0.85)'; dot(hx+0.53*R,hy-0.2*R,0.03*R);
+    ctx.strokeStyle=INK; ctx.lineWidth=Math.max(1.6,0.014*h);
+    ctx.beginPath(); ctx.moveTo(hx+0.05*R,hy-0.45*R); ctx.lineTo(hx+0.5*R,hy-0.28*R); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(hx-0.1*R,hy-0.38*R); ctx.lineTo(hx+0.12*R,hy-0.28*R); ctx.stroke();
+    capsule(hx-0.05*R,hy-0.7*R,0.2*R, hx+0.2*R,hy+0.3*R+ew,0.13*R, FUR_M,FUR_D,INK); // front floppy ear
+    ball(hx-0.05*R,hy-0.6*R,0.16*R,FUR_L,FUR_M,null);
+
+    // lead arm (front-most)
+    var lsX=0.15*w+sway, lsY=shY, leX,leY,lwX,lwY;
+    if(atk){ leX=0.52*w; leY=shY-0.02*h; lwX=1.02*w; lwY=shY-0.05*h; }
+    else if(block){ leX=0.30*w; leY=shY-0.02*h; lwX=0.27*w; lwY=shY-0.17*h; }
+    else { leX=0.32*w+sway; leY=shY+0.03*h; lwX=0.37*w+sway; lwY=shY-0.07*h; }
+    REX_A_seg(lsX,lsY,0.10*w, leX,leY,0.082*w, lwX,lwY,0.058*w, FUR_L,FUR_M,INK);
+    REX_A_glove(lwX,lwY,0.12*w,1,GL,GD,INK);
+
+    // special energy near lead paw
+    if(spec){
+      var ex=lwX+0.14*w, ey=lwY-0.02*h;
+      var rr=0.28*w*(0.85+0.15*Math.sin(t*12));
+      var g=ctx.createRadialGradient(ex,ey,0,ex,ey,rr);
+      g.addColorStop(0,'rgba(255,246,200,0.95)');
+      g.addColorStop(0.4,'rgba(255,150,50,0.6)');
+      g.addColorStop(1,'rgba(255,110,30,0)');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(ex,ey,rr,0,6.3); ctx.fill();
+      ctx.strokeStyle='rgba(255,235,160,0.85)'; ctx.lineWidth=0.02*w;
+      for(var i=0;i<6;i++){ var a=t*8+i*1.05; var r1=rr*0.5, r2=rr*(0.9+0.2*Math.sin(t*10+i)); ctx.beginPath(); ctx.moveTo(ex+Math.cos(a)*r1,ey+Math.sin(a)*r1); ctx.lineTo(ex+Math.cos(a)*r2,ey+Math.sin(a)*r2); ctx.stroke(); }
+    }
+  }
+
+  // ---- drawHeroBird (design panel "ZIP_C", original) ----
+  // ---- helpers (ABOVE draw, prefixed ZIP_C_) ----
+  function ZIP_C_feather(bx, by, len, ang, wid, light, dark){
+    ctx.save();
+    ctx.translate(bx, by);
+    ctx.rotate(ang);
+    const g = ctx.createLinearGradient(0, -wid, len, wid);
+    g.addColorStop(0, light);
+    g.addColorStop(1, dark);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(len * 0.55, -wid, len, -wid * 0.15);
+    ctx.quadraticCurveTo(len * 0.9, 0, len, wid * 0.15);
+    ctx.quadraticCurveTo(len * 0.55, wid, 0, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#06322b';
+    ctx.lineWidth = Math.max(1, wid * 0.22);
+    ctx.stroke();
+    // central shaft
+    ctx.strokeStyle = dark;
+    ctx.lineWidth = Math.max(1, wid * 0.16);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(len * 0.9, 0);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function ZIP_C_armFeathers(ex, ey, hx, hy, n, len, light, dark){
+    const dx = hx - ex, dy = hy - ey;
+    const a = Math.atan2(dy, dx);
+    for (let i = 0; i < n; i++){
+      const t = n > 1 ? i / (n - 1) : 0;
+      const bx = ex + dx * t;
+      const by = ey + dy * t;
+      ZIP_C_feather(bx, by, len * (1 - 0.28 * t), a + Math.PI * 0.86, len * 0.17, light, dark);
+    }
+  }
+
+  function ZIP_C_foot(ax, ay, fdir, ln, BE, BD, INK){
+    // back toe
+    capsule(ax, ay - ln * 0.05, ln * 0.16, ax - fdir * ln * 0.55, ay + ln * 0.02, ln * 0.07, BE, BD, INK);
+    // three front toes, fanned in depth (vertical offset)
+    const toes = [[1.05, 0.04], [0.9, -0.05], [0.68, -0.12]];
+    for (let i = 0; i < toes.length; i++){
+      const tx = ax + fdir * ln * toes[i][0];
+      const ty = ay + ln * toes[i][1];
+      capsule(ax, ay - ln * 0.05, ln * 0.17, tx, ty, ln * 0.07, BE, BD, INK);
+      // claw tip
+      ctx.fillStyle = INK;
+      ctx.beginPath();
+      ctx.moveTo(tx, ty - ln * 0.06);
+      ctx.lineTo(tx + fdir * ln * 0.22, ty + ln * 0.04);
+      ctx.lineTo(tx, ty + ln * 0.08);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // ankle knuckle
+    ball(ax, ay - ln * 0.06, ln * 0.2, BE, BD, INK);
+  }
+
+  // ---- main ----
+  function drawHeroBird(f, w, h, bob, punching, kicking, special){
+    const W = w, H = h;
+    const anim = (f && f.anim) || 0;
+    const cf = (f && f.crouch) ? 1 : 0;
+    const block = !!(f && f.blocking);
+    const b = bob || 0;
+
+    // palette
+    const L = '#12a58f', D = '#0c6e60', HL = '#3fd3bb', BELLY = '#bfeee0';
+    const BE = '#f7a827', BD = '#d97614';
+    const ACL = '#f9c04a', ACD = '#e07d15';
+    const INK = '#06322b';
+    const AFL = '#0e8f7c', AFD = '#08453c';
+
+    // subtle motion
+    const breath = Math.sin(anim * 2.3) * 0.01 * H;
+    const sway = Math.sin(anim * 1.3) * 0.02;
+    const twitch = Math.sin(anim * 11) * 0.5 + Math.sin(anim * 17 + 1) * 0.35;
+    const jx = twitch * 0.006 * W;
+    const jy = twitch * 0.004 * H;
+
+    const attack = punching || special;
+
+    // core heights
+    const hipY = -(0.50 - 0.13 * cf) * H - b + breath * 0.3;
+    const shoY = -(0.82 - 0.17 * cf) * H - b + breath;
+    const HX = 0.11 * W + jx * 0.5;
+    const HY = shoY - (0.15 - 0.02 * cf) * H + Math.sin(anim * 2.3) * 0.006 * H + jy * 0.5;
+    const HR = 0.125 * H;
+
+    // ===== ground shadow =====
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath();
+    ctx.ellipse(0, -0.006 * H, 0.44 * W, 0.05 * H, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // ===== TAIL (behind) =====
+    const tbx = -0.15 * W, tby = hipY + 0.03 * H;
+    for (let i = 0; i < 4; i++){
+      const t = i / 3;
+      const ang = Math.PI - 0.35 + t * 0.7 + sway * 0.8 + Math.sin(anim * 3 + i) * 0.05;
+      ZIP_C_feather(tbx, tby, 0.34 * H * (1 - 0.08 * Math.abs(i - 1.5)), ang, 0.05 * H,
+        i % 2 ? HL : L, D);
+    }
+    // orange tail tips accent
+    for (let i = 0; i < 3; i++){
+      const t = i / 2;
+      const ang = Math.PI - 0.2 + t * 0.45 + sway * 0.8;
+      ZIP_C_feather(tbx + 0.02 * W, tby - 0.02 * H, 0.2 * H, ang, 0.028 * H, ACL, ACD);
+    }
+
+    // ===== REAR LEG =====
+    const bhipX = -0.06 * W;
+    const bkX = -0.30 * W, bkY = hipY + 0.22 * H;
+    const bfX = -0.31 * W;
+    capsule(bhipX, hipY, 0.085 * H, bkX, bkY, 0.055 * H, D, INK, INK);       // thigh (shaded darker=back)
+    capsule(bkX, bkY, 0.05 * H, bfX, -0.02 * H, 0.035 * H, BE, BD, INK);      // scaly shin
+    ball(bkX, bkY, 0.055 * H, D, INK, INK);                                   // knee
+    ZIP_C_foot(bfX, 0, 1, 0.1 * H, BE, BD, INK);
+
+    // ===== REAR ARM (chambered / guard) =====
+    const RS = [-0.11 * W, shoY + 0.02 * H];
+    let RE, RH;
+    if (block){ RE = [-0.16 * W, shoY + 0.05 * H]; RH = [-0.03 * W, shoY - 0.05 * H]; }
+    else if (attack){ RE = [-0.27 * W, shoY + 0.05 * H]; RH = [-0.36 * W, shoY + 0.02 * H]; }
+    else { RE = [-0.24 * W, shoY + 0.10 * H]; RH = [-0.15 * W, shoY + 0.17 * H + jy]; }
+    capsule(RS[0], RS[1], 0.06 * H, RE[0], RE[1], 0.048 * H, D, INK, INK);
+    capsule(RE[0], RE[1], 0.048 * H, RH[0], RH[1], 0.032 * H, D, INK, INK);
+    ZIP_C_armFeathers(RE[0], RE[1], RH[0], RH[1], 3, 0.16 * H, AFD, INK);
+    ball(RH[0], RH[1], 0.045 * H, D, INK, INK);
+
+    // ===== TORSO =====
+    const hipCx = 0.0 * W;
+    const chestX = 0.07 * W;
+    capsule(hipCx, hipY + 0.02 * H, 0.11 * H, chestX, shoY + 0.02 * H, 0.135 * H, L, D, INK);
+    ball(chestX, shoY + 0.02 * H, 0.145 * H, L, D, INK);                      // chest mass
+    // belly plate
+    ctx.save();
+    const bg = ctx.createLinearGradient(0, shoY, 0, hipY);
+    bg.addColorStop(0, BELLY); bg.addColorStop(1, HL);
+    ctx.fillStyle = bg;
+    ctx.strokeStyle = INK; ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.ellipse(0.11 * W, shoY + 0.16 * H, 0.09 * W, 0.15 * H, 0.1, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    // shoulder ball (lead side)
+    ball(0.08 * W, shoY, 0.07 * H, HL, D, INK);
+
+    // ===== FRONT LEG =====
+    const fhipX = 0.04 * W;
+    let fkX, fkY, ffX, ffY, fdir = 1;
+    if (kicking){
+      fkX = 0.30 * W; fkY = hipY + 0.06 * H;
+      ffX = 0.66 * W; ffY = -0.34 * H;
+    } else {
+      fkX = 0.25 * W; fkY = hipY + 0.24 * H;
+      ffX = 0.20 * W; ffY = -0.02 * H;
+    }
+    capsule(fhipX, hipY, 0.09 * H, fkX, fkY, 0.058 * H, HL, D, INK);          // thigh (lit)
+    capsule(fkX, fkY, 0.052 * H, ffX, ffY, 0.036 * H, ACL, BD, INK);         // shin
+    ball(fkX, fkY, 0.058 * H, L, D, INK);                                     // knee
+    ZIP_C_foot(ffX, kicking ? ffY : 0, fdir, 0.11 * H, BE, BD, INK);
+
+    // ===== NECK + HEAD =====
+    capsule(chestX, shoY - 0.02 * H, 0.06 * H, HX, HY + 0.05 * H, 0.055 * H, L, D, INK);
+
+    // crest feathers (orange accent, behind head)
+    for (let i = 0; i < 5; i++){
+      const t = i / 4;
+      const bx = HX - HR * 0.55 + t * HR * 0.9;
+      const by = HY - HR * 0.7;
+      const ang = -2.15 + t * 0.85 + sway * 0.7 + Math.sin(anim * 6 + i * 1.3) * 0.1 + twitch * 0.03;
+      ZIP_C_feather(bx, by, HR * (1.35 - 0.12 * Math.abs(i - 2)), ang, HR * 0.13,
+        i % 2 ? ACL : BE, ACD);
+    }
+
+    // head mass
+    ball(HX, HY, HR, L, D, INK);
+    // cheek/jaw highlight
+    ball(HX + HR * 0.35, HY + HR * 0.2, HR * 0.55, HL, D, null);
+
+    // beak (sharp, +x), slight open on snarl during attack
+    const gape = attack ? 0.03 * H : (kicking ? 0.018 * H : 0.006 * H);
+    const bkBaseX = HX + HR * 0.55;
+    const bkTipX = bkBaseX + 0.17 * W;
+    ctx.save();
+    ctx.strokeStyle = INK; ctx.lineWidth = 1.8;
+    // upper mandible
+    const ug = ctx.createLinearGradient(bkBaseX, HY - HR * 0.3, bkTipX, HY);
+    ug.addColorStop(0, ACL); ug.addColorStop(1, BD);
+    ctx.fillStyle = ug;
+    ctx.beginPath();
+    ctx.moveTo(bkBaseX - HR * 0.05, HY - HR * 0.28);
+    ctx.quadraticCurveTo(bkTipX * 0.85 + HX * 0.15, HY - HR * 0.22, bkTipX, HY - gape * 0.3);
+    ctx.quadraticCurveTo(bkBaseX + 0.05 * W, HY - gape * 0.1, bkBaseX, HY + HR * 0.05);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    // lower mandible
+    const lg = ctx.createLinearGradient(bkBaseX, HY, bkTipX, HY + HR * 0.3);
+    lg.addColorStop(0, BE); lg.addColorStop(1, BD);
+    ctx.fillStyle = lg;
+    ctx.beginPath();
+    ctx.moveTo(bkBaseX - HR * 0.02, HY + HR * 0.06);
+    ctx.quadraticCurveTo(bkBaseX + 0.06 * W, HY + gape + HR * 0.12, bkTipX - 0.02 * W, HY + gape + HR * 0.04);
+    ctx.quadraticCurveTo(bkBaseX + 0.04 * W, HY + gape + HR * 0.22, bkBaseX - HR * 0.05, HY + HR * 0.24);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    // nostril
+    ctx.fillStyle = INK;
+    dot(bkBaseX + 0.03 * W, HY - HR * 0.12, HR * 0.06);
+    ctx.restore();
+
+    // brow ridge (keen/angry) + eye
+    const eX = HX + HR * 0.28, eY = HY - HR * 0.28;
+    ctx.save();
+    ctx.strokeStyle = INK; ctx.lineWidth = Math.max(2, HR * 0.14);
+    ctx.beginPath();
+    ctx.moveTo(HX - HR * 0.1, HY - HR * 0.62);
+    ctx.quadraticCurveTo(eX, HY - HR * 0.62, eX + HR * 0.42, HY - HR * 0.34);
+    ctx.stroke();
+    ctx.restore();
+    // eye white
+    ball(eX, eY, HR * 0.27, '#fbfbf0', '#c9d3c4', INK);
+    // pupil (looks forward +x), twitchy micro shift
+    ctx.fillStyle = INK;
+    dot(eX + HR * 0.12 + jx * 0.4, eY + HR * 0.02, HR * 0.13);
+    ctx.fillStyle = ACL;
+    dot(eX + HR * 0.17, eY - HR * 0.05, HR * 0.045);
+    // small orange face patch under eye
+    ctx.fillStyle = ACD;
+    ctx.beginPath();
+    ctx.moveTo(eX - HR * 0.1, eY + HR * 0.28);
+    ctx.lineTo(bkBaseX, HY - HR * 0.05);
+    ctx.lineTo(eX + HR * 0.2, eY + HR * 0.35);
+    ctx.closePath();
+    ctx.fill();
+
+    // ===== LEAD ARM (over body) =====
+    const LS = [0.08 * W, shoY + 0.01 * H];
+    let LE, LH;
+    if (block){ LE = [0.20 * W, shoY + 0.06 * H]; LH = [0.17 * W, shoY - 0.08 * H]; }
+    else if (attack){
+      const ext = special ? 0.02 : 0;
+      LE = [0.34 * W, shoY + 0.03 * H];
+      LH = [(0.70 + ext) * W + jx * 0.6, shoY + 0.0 * H + jy * 0.4];
+    } else {
+      LE = [0.27 * W, shoY + 0.10 * H];
+      LH = [0.31 * W + jx, shoY + 0.01 * H + jy];
+    }
+    capsule(LS[0], LS[1], 0.065 * H, LE[0], LE[1], 0.05 * H, HL, D, INK);
+    capsule(LE[0], LE[1], 0.05 * H, LH[0], LH[1], 0.034 * H, L, D, INK);
+    ZIP_C_armFeathers(LE[0], LE[1], LH[0], LH[1], 3, 0.18 * H, AFL, AFD);
+    // clawed hand / fist
+    ball(LH[0], LH[1], attack ? 0.052 * H : 0.046 * H, HL, D, INK);
+    // finger-claws
+    const ha = Math.atan2(LH[1] - LE[1], LH[0] - LE[0]);
+    ctx.fillStyle = INK;
+    for (let i = -1; i <= 1; i++){
+      const a2 = ha + i * 0.35;
+      const cx = LH[0] + Math.cos(a2) * 0.05 * H;
+      const cy = LH[1] + Math.sin(a2) * 0.05 * H;
+      ctx.beginPath();
+      ctx.moveTo(LH[0] + Math.cos(a2 - 0.2) * 0.03 * H, LH[1] + Math.sin(a2 - 0.2) * 0.03 * H);
+      ctx.lineTo(cx + Math.cos(a2) * 0.03 * H, cy + Math.sin(a2) * 0.03 * H);
+      ctx.lineTo(LH[0] + Math.cos(a2 + 0.2) * 0.03 * H, LH[1] + Math.sin(a2 + 0.2) * 0.03 * H);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // ===== SPECIAL: feather dart + energy near lead hand =====
+    if (special){
+      const dartX = LH[0] + 0.09 * W;
+      const dartY = LH[1] - 0.01 * H;
+      const spin = anim * 12;
+      // glow
+      ctx.save();
+      const gg = ctx.createRadialGradient(dartX, dartY, 0, dartX, dartY, 0.13 * H);
+      gg.addColorStop(0, 'rgba(180,255,235,0.9)');
+      gg.addColorStop(0.4, 'rgba(63,211,187,0.5)');
+      gg.addColorStop(1, 'rgba(18,165,143,0)');
+      ctx.fillStyle = gg;
+      ctx.beginPath();
+      ctx.arc(dartX, dartY, 0.13 * H, 0, Math.PI * 2);
+      ctx.fill();
+      // motion streaks
+      ctx.strokeStyle = 'rgba(200,255,240,0.7)';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 3; i++){
+        const yy = dartY + (i - 1) * 0.03 * H;
+        ctx.beginPath();
+        ctx.moveTo(dartX - 0.14 * W, yy);
+        ctx.lineTo(dartX - 0.02 * W, yy);
+        ctx.stroke();
+      }
+      ctx.restore();
+      // the dart itself (energized feather)
+      ZIP_C_feather(dartX - 0.04 * W, dartY, 0.16 * W, Math.sin(spin) * 0.12, 0.028 * H, '#d8fff4', ACL);
+      ctx.fillStyle = '#ffffff';
+      dot(dartX + 0.1 * W, dartY, 0.02 * H);
+    }
   }
 
   function drawProjectile(p){
