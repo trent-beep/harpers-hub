@@ -57,6 +57,7 @@
     <div>
       <button class="btn" id="btn2p">2 PLAYERS</button>
       <button class="btn alt" id="btn1p">1P vs CPU</button>
+      <button class="btn" id="btnArc" style="background:#b8e0ff;box-shadow:0 4px 0 #4a90c0;">ARCADE · beat the Snow Beast</button>
     </div>
     <button class="btn" id="btnHelp" style="background:#c7d0ee;box-shadow:0 4px 0 #7f8bbd;">CONTROLS</button>
     <div class="hint">An original game — characters are not from any other title.</div>
@@ -154,10 +155,11 @@
   }
 
   // ---------- state ----------
-  let state='title';   // title / help / select / vs / fight / roundend / matchend
-  let mode='2p';       // '2p' or 'cpu'
+  let state='title';   // title / help / select / vs / fight / roundend / gnext / matchend
+  let mode='2p';       // '2p' / 'cpu' / 'arcade'
   let f1,f2,projectiles=[],fx=[],cam=0;
   let roundTime=60, roundResult='', tmr=0, msg='', vsT=0;
+  let roundsToWin=2, gIndex=0, gQueue=[];   // arcade gauntlet
   let sel={p1:0,p2:5,l1:false,l2:false,cur:0};
   let bestBanner='';
 
@@ -168,6 +170,7 @@
     state='select'; sel={p1:0,p2:mode==='cpu'?5:5,l1:false,l2:false}; SFX.select(); }
   $('btn2p').onclick=()=>goSelect('2p');
   $('btn1p').onclick=()=>goSelect('cpu');
+  $('btnArc').onclick=()=>goSelect('arcade');
   $('btnHelp').onclick=()=>{show('help',true);};
   $('btnBack').onclick=()=>{show('help',false);};
 
@@ -180,9 +183,27 @@
   }
   function startMatch(){
     f1=mkFighter(sel.p1,-1,false);
-    f2=mkFighter(sel.p2,1, mode==='cpu');
+    if(mode==='arcade'){
+      gQueue=buildGauntlet(sel.p1); gIndex=0; roundsToWin=1;
+      f2=mkFighter(gQueue[0],1,true); if(gQueue[0]===5) bossBuff(f2);
+    } else {
+      roundsToWin=2; f2=mkFighter(sel.p2,1, mode==='cpu');
+    }
     f1.wins=0; f2.wins=0; newRound(true);
     state='vs'; vsT=1.4; SFX.bell();
+  }
+  function buildGauntlet(pIdx){
+    const q=[]; for(let i=0;i<ROSTER.length;i++){ if(i!==pIdx && i!==5) q.push(i); }
+    for(let i=q.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; const t=q[i]; q[i]=q[j]; q[j]=t; }
+    q.push(5);   // Frostbite the Snow Beast — always the final boss
+    return q;
+  }
+  function bossBuff(f){ f.maxhp=Math.round(f.maxhp*1.4); f.hp=f.maxhp; f.boss=true; }
+  function advanceGauntlet(){
+    const ci=gQueue[gIndex];
+    f2=mkFighter(ci,1,true); if(ci===5) bossBuff(f2);
+    f1.wins=0; f2.wins=0; newRound(true);
+    state='vs'; vsT=1.2; SFX.bell();
   }
   function newRound(first){
     f1.x=300; f2.x=660; f1.y=f2.y=FLOOR; f1.vx=f2.vx=f1.vy=f2.vy=0;
@@ -339,7 +360,8 @@
 
   function update(){
     if(state==='vs'){ vsT-=dt; if(vsT<=0){ state='fight'; } return; }
-    if(state!=='fight'){ if(state==='roundend'||state==='matchend'){ tmr-=dt; } return; }
+    if(state==='gnext'){ tmr+=dt; if(tmr>1.7) advanceGauntlet(); return; }
+    if(state!=='fight'){ if(state==='roundend'||state==='matchend'){ tmr+=dt; } return; }
     const i1=readInput(0,f1,f2), i2=readInput(1,f2,f1);
     stepFighter(f1,f2,i1); stepFighter(f2,f1,i2);
     stepProjectiles();
@@ -353,8 +375,18 @@
       else winner = f1.hp>f2.hp? f1 : (f2.hp>f1.hp? f2 : null);
       if(winner){ winner.wins++; roundResult=(winner===f1?'P1':(f2.cpu?'CPU':'P2'))+' — '+winner.c.name+' wins the round!'; SFX.ko(); }
       else roundResult='Draw!';
-      if(f1.wins>=2 || f2.wins>=2){ state='matchend'; tmr=0;
-        const champ=f1.wins>=2?f1:f2; msg=(champ===f1?'PLAYER 1':(f2.cpu?'CPU':'PLAYER 2'))+' WINS!'; SFX.win(); }
+      if(f1.wins>=roundsToWin || f2.wins>=roundsToWin){
+        if(mode==='arcade'){
+          if(winner===f1){
+            gIndex++;
+            if(gIndex>=gQueue.length){ state='matchend'; tmr=0; msg='CHAMPION!'; SFX.win(); }
+            else { state='gnext'; tmr=0; SFX.win(); }
+          } else { state='matchend'; tmr=0; msg='GAME OVER'; }
+        } else {
+          state='matchend'; tmr=0;
+          const champ=f1.wins>=roundsToWin?f1:f2; msg=(champ===f1?'PLAYER 1':(f2.cpu?'CPU':'PLAYER 2'))+' WINS!'; SFX.win();
+        }
+      }
       else { state='roundend'; tmr=0; }
     }
   }
@@ -372,14 +404,25 @@
   }
   function handleSelectKey(k){
     const m0=MAP[0], m1=MAP[1];
-    if(!sel.l1){ if(k===m0.left){ sel.p1=(sel.p1+ROSTER.length-1)%ROSTER.length; SFX.select(); }
+    if(k==='backspace'||k==='escape'){ toTitle(); return; }
+    // Player 1 picks their own fighter first
+    if(!sel.l1){
+      if(k===m0.left){ sel.p1=(sel.p1+ROSTER.length-1)%ROSTER.length; SFX.select(); }
       else if(k===m0.right){ sel.p1=(sel.p1+1)%ROSTER.length; SFX.select(); }
-      else if(k===m0.punch){ sel.l1=true; SFX.bell(); } }
-    if(mode==='2p' && !sel.l2){ if(k===m1.left){ sel.p2=(sel.p2+ROSTER.length-1)%ROSTER.length; SFX.select(); }
+      else if(k===m0.punch){ sel.l1=true; SFX.bell(); if(mode==='arcade') sel.l2=true; }   // arcade = one pick
+    }
+    // 1P vs CPU: Player 1 also chooses the OPPONENT (default = Frostbite)
+    else if(mode==='cpu' && !sel.l2){
+      if(k===m0.left){ sel.p2=(sel.p2+ROSTER.length-1)%ROSTER.length; SFX.select(); }
+      else if(k===m0.right){ sel.p2=(sel.p2+1)%ROSTER.length; SFX.select(); }
+      else if(k===m0.punch){ sel.l2=true; SFX.bell(); }
+    }
+    // 2 players: Player 2 picks with the right-side keys
+    if(mode==='2p' && !sel.l2){
+      if(k===m1.left){ sel.p2=(sel.p2+ROSTER.length-1)%ROSTER.length; SFX.select(); }
       else if(k===m1.right){ sel.p2=(sel.p2+1)%ROSTER.length; SFX.select(); }
-      else if(k===m1.punch){ sel.l2=true; SFX.bell(); } }
-    if(mode==='cpu' && sel.l1 && !sel.l2){ sel.p2=(Math.random()*ROSTER.length)|0; sel.l2=true; }
-    if(k==='backspace'||k==='escape') toTitle();
+      else if(k===m1.punch){ sel.l2=true; SFX.bell(); }
+    }
     if(sel.l1 && sel.l2) startMatch();
   }
 
@@ -397,10 +440,11 @@
       for(const e of fx) if(e.type==='spark') drawSpark(e);
     }
     ctx.restore();
-    if(f1&&f2 && (state==='fight'||state==='vs'||state==='roundend'||state==='matchend')) drawHUD();
+    if(f1&&f2 && (state==='fight'||state==='vs'||state==='roundend'||state==='gnext'||state==='matchend')) drawHUD();
     if(state==='vs') drawVS();
     if(state==='roundend') drawCenter(roundResult, 'Press any key…', tmr);
-    if(state==='matchend') drawCenter(msg, 'ENTER rematch · BACKSPACE menu', tmr);
+    if(state==='gnext'){ const ni=gQueue[gIndex]; drawCenter('YOU WIN!', 'Next up: '+ROSTER[ni].name+(ni===5?'  —  the SNOW BEAST!':''), tmr); }
+    if(state==='matchend') drawCenter(msg, mode==='arcade'&&msg==='CHAMPION!'?'You beat the gauntlet! ENTER rematch · BACKSPACE menu':'ENTER rematch · BACKSPACE menu', tmr);
   }
   function drawStageBg(){
     const g=ctx.createLinearGradient(0,0,0,VH); g.addColorStop(0,'#3a4a7a'); g.addColorStop(1,'#7f6fae');
@@ -462,14 +506,19 @@
       ctx.fillStyle='#fff'; ctx.font='800 16px Trebuchet MS, sans-serif'; ctx.fillText(ROSTER[i].name,x,y+74);
       if(i===sel.p1){ ctx.strokeStyle='#5fd0ff'; ctx.lineWidth=4; roundRect(x-58,y-98,116,154,12); ctx.stroke();
         ctx.fillStyle='#5fd0ff'; ctx.font='800 14px Trebuchet MS'; ctx.fillText(sel.l1?'P1 ✔':'P1',x-30,y-104); }
-      if(mode==='2p' && i===sel.p2){ ctx.strokeStyle='#ff6a8a'; ctx.lineWidth=4; roundRect(x-60,y-100,120,158,12); ctx.stroke();
-        ctx.fillStyle='#ff6a8a'; ctx.font='800 14px Trebuchet MS'; ctx.fillText(sel.l2?'P2 ✔':'P2',x+30,y-104); }
+      const showP2 = (mode==='2p') || (mode==='cpu' && sel.l1);
+      if(showP2 && i===sel.p2){ ctx.strokeStyle='#ff6a8a'; ctx.lineWidth=4; roundRect(x-60,y-100,120,158,12); ctx.stroke();
+        ctx.fillStyle='#ff6a8a'; ctx.font='800 14px Trebuchet MS'; ctx.fillText((mode==='cpu'?'CPU':'P2')+(sel.l2?' ✔':''),x+30,y-104); }
     }
     ctx.fillStyle='#cfe'; ctx.font='700 16px Trebuchet MS, sans-serif';
     const sp=ROSTER[sel.p1].sp;
-    ctx.fillText('P1: A/D move · F choose   —   '+ROSTER[sel.p1].name+' special: '+sp.name, VW/2, 430);
-    if(mode==='2p') ctx.fillText('P2: ←/→ move · , choose   —   '+ROSTER[sel.p2].name+' special: '+ROSTER[sel.p2].sp.name, VW/2, 458);
-    else ctx.fillText('CPU will pick a fighter · Backspace = menu', VW/2, 458);
+    ctx.fillText('P1: A/D move · F choose   —   '+ROSTER[sel.p1].name+' special: '+sp.name, VW/2, 424);
+    if(mode==='2p') ctx.fillText('P2: ←/→ move · , choose   —   '+ROSTER[sel.p2].name+' special: '+ROSTER[sel.p2].sp.name, VW/2, 450);
+    else if(mode==='cpu'){
+      if(!sel.l1) ctx.fillText('Choose your fighter (F), then choose who to fight', VW/2, 450);
+      else { ctx.fillStyle='#b8e0ff'; ctx.fillText('Now pick your OPPONENT with A/D, F to fight  —  '+ROSTER[sel.p2].name+(sel.p2===5?'  (the Snow Beast!)':''), VW/2, 450); }
+    } else { ctx.fillStyle='#b8e0ff'; ctx.fillText('ARCADE: beat every fighter — the SNOW BEAST is the final boss!', VW/2, 450); }
+    ctx.fillStyle='#8fa0c8'; ctx.fillText('Backspace = menu', VW/2, 476);
   }
   function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r);
     ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
