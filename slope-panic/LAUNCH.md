@@ -35,16 +35,19 @@ out if this *won't* work as early and cheaply as possible.
 
 ## Reality check before you monetise (read this)
 
-Slope Panic is a **tribute to SkiFree**, a real game Microsoft shipped. Two
-honest risks to know about:
+Slope Panic started as a SkiFree-style ski game and has now been **reworked into
+an original downhill mountain-bike game** — a forest setting, a biker, dirt
+jumps, squashable rabbits/flowers, and a **bear** (not the "Abominable Snow
+Monster") as the chaser. That reskin is deliberate: it makes the game legibly its
+own IP, which substantially lowers the trademark risk of monetising. Two things
+still worth knowing:
 
-- **Trademark/IP.** "SkiFree" and its Abominable Snow Monster are associated
-  with a real published title. A *free* fan tribute is low-risk; **charging money
-  or running ads on a close clone raises the risk** of a takedown or an App Store
-  rejection. The game is already named its own thing ("Slope Panic"), which
-  helps. Before monetising, make it legibly its own game: your own creature name
-  and art, your own copy, and a line like *"Inspired by classic 90s ski games —
-  not affiliated with SkiFree or Microsoft."*
+- **Trademark/IP.** The mechanic (endless downhill, a creature that chases you
+  past a distance marker) is a genre convention, not something anyone owns — plenty
+  of games use it. Now that the theme, art, and creature are original, the main
+  residual risk is small. Keep it that way: don't reintroduce the SkiFree name or
+  its exact assets, and (optional, cheap) add a one-line "original game" credit,
+  which the menu already carries.
 - **App Store review.** Apple rejects thin "just a website in a box" apps
   (Guideline 4.2). A Capacitor wrapper is fine *if* the app genuinely uses native
   features (offline play, home-screen presence, Game Center, haptics, IAP). Plan
@@ -169,18 +172,26 @@ and where players come from. Don't fly blind.
    Capacitor App Store project too? *(Recommend: PWA now.)*
 2. **Monetisation model to build first:** the Stripe "unlock everything"
    purchase, ads, or hold off entirely for now? *(Recommend: Stripe unlock.)*
-3. **Legal comfort:** are you OK making the game legibly its own IP (rename the
-   creature, own art/copy, add the "not affiliated" line) before we charge for it?
+3. **Legal comfort:** ✅ largely handled — the game is now an original downhill
+   MTB game (bike/forest/bear, own art and copy). Anything further you want here
+   before we charge for it?
 
 Tell me which way on each and I'll build the next phase.
 
 ---
 
-## What this change already delivered
+## What has been delivered so far
 
 - `sw.js` — service worker: offline play + real installability.
-- Service-worker registration added to `index.html`.
-- Open Graph + Twitter share tags added to `index.html`.
+- Service-worker registration + Open Graph / Twitter share tags in `index.html`.
 - This `LAUNCH.md` — the plan above.
+- **Own-IP reskin:** ski → downhill mountain bike, snow → forest, yeti → **bear**;
+  new **rabbit** (squash for +30) and **flower** (squash for −20) mechanics with
+  floating score popups; dirt **jumps** + mid-air **tumbles**; all 5 colour themes
+  reworked as forest palettes; all player-facing copy updated.
+
+Still ski-branded (follow-ups, if you want them): the app name "Slope Panic" and
+the home-screen **icons** (`icon-*.png`) — a rename + new bike/forest icons would
+finish the rebrand.
 
 The Drive Hub (`/index.html` at the repo root) is untouched.

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Slope Panic</title>
-<meta name="description" content="A SkiFree tribute — ski an endless slope, dodge the trees and outrun the Abominable Snow Monster.">
+<meta name="description" content="A retro downhill mountain-bike arcade game — bomb an endless forest trail, dodge the trees, squash rabbits for points, and outrun the bear.">
 <meta name="theme-color" content="#0e1730">
 
 <!-- Social / share cards (marketing foundation).
@@ -12,11 +12,11 @@
      switch twitter:card to summary_large_image. -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="Slope Panic">
-<meta property="og:description" content="Ski an endless slope, dodge the trees, and outrun the Abominable Snow Monster. A SkiFree tribute you can play in your browser or add to your home screen.">
+<meta property="og:description" content="Ride an endless forest trail, hit jumps, squash rabbits for points, and outrun the bear. A retro downhill arcade game you can play in your browser or add to your home screen.">
 <meta property="og:image" content="icon-512.png">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Slope Panic">
-<meta name="twitter:description" content="Ski an endless slope and outrun the yeti. Free, no download — add it to your home screen.">
+<meta name="twitter:description" content="Downhill through the forest — jump, squash rabbits, outrun the bear. Free, no download — add it to your home screen.">
 <meta name="twitter:image" content="icon-512.png">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -131,15 +131,16 @@
 
     <div id="start" class="overlay">
       <h1>SLOPE&nbsp;<span class="m">PANIC</span></h1>
-      <div class="tag">a ski free tribute</div>
+      <div class="tag">downhill MTB through the forest</div>
       <div class="card">
-        Bomb down an endless slope. Dodge trees, rocks &amp; other skiers, grab
-        <b>ramps</b> for big-air style (flip in the air for more!). Past
-        <b>2000m</b> the <b>Abominable Snow Monster</b> wakes up — tuck and go
-        <b>fast</b> to outrun it, just like the old days.
+        Bomb down an endless forest trail. Dodge trees, rocks &amp; other riders,
+        hit <b>jumps</b> for big-air style (<b>tumble</b> in the air for more!).
+        Squash <b>rabbits</b> for points — but flatten a <b>flower</b> and you
+        lose them. Past <b>2000m</b> a <b>bear</b> wakes and gives chase — tuck
+        low and go <b>fast</b> to escape it.
         <div class="keys">
-          <span><span class="k">◄</span> <span class="k">►</span></span><span>steer / carve · flip in the air</span>
-          <span><span class="k">▼</span> <span class="k">F</span></span><span>tuck &amp; go fast (escape the yeti)</span>
+          <span><span class="k">◄</span> <span class="k">►</span></span><span>steer / lean · tumble in the air</span>
+          <span><span class="k">▼</span> <span class="k">F</span></span><span>tuck &amp; go fast (escape the bear)</span>
           <span><span class="k">Space</span></span><span>speed burst</span>
         </div>
       </div>
@@ -150,6 +151,7 @@
         <button class="play ghost" id="saverBtn">SCREENSAVER</button>
       </div>
       <div class="hint">Point straight down = fastest = scariest.</div>
+      <div class="hint" style="font-size:clamp(11px,2.6vw,13px);opacity:.4;">An original downhill arcade game.</div>
     </div>
 
     <div id="over" class="overlay" hidden>
@@ -174,47 +176,55 @@
   const stage = document.getElementById('stage');
 
   // ---------- colour themes ----------
+  // Forest palettes. Keys are kept (classic/night/sunset/phosphor/candy) so
+  // saved preferences and ?theme= URLs keep working; only labels + colours
+  // changed. `monster*` = the bear, `flake` = scrolling ground/leaf speckle.
   const THEMES = {
-    classic:{ name:'Classic', bg:'#ffffff', tex:'#e9eef3', flake:'#dfe7ef',
-      treeA:'#1f7a34', treeB:'#2f9a4a', trunk:'#6a4a2b',
+    classic:{ name:'Forest', bg:'#cfe0b8', tex:'#bdd3a0', flake:'#a9c489',
+      treeA:'#2f7d3a', treeB:'#46a656', trunk:'#6a4a2b',
       rockA:'#8a8f96', rockB:'#b3b8be', rockC:'#63676d',
-      mogul:'#e8eef4', mogulLine:'#cdd7e2', ramp:'#d5dee7', rampLine:'#b7c3d0',
-      hat:'#d23b3b', pom:'#ffffff', coat:'#2f6fd6', pants:'#26324a', face:'#e8c9a0', glove:'#555',
-      monster:'#9aa1a8', monsterDark:'#7d858d', monsterFur:'#f2f4f6', mouth:'#c0392b',
-      dogA:'#7a4a22', dogB:'#5f3a1a', boarder:'#e08a1e', skier2:'#3aa564',
-      hudBg:'#ffffff', hudInk:'#101418', text:'#101418', accent:'#d23b3b' },
-    night:{ name:'Night', bg:'#0e1730', tex:'#182647', flake:'#ffffff',
-      treeA:'#1f6a44', treeB:'#2f9a63', trunk:'#3a2c1e',
-      rockA:'#46506e', rockB:'#626e92', rockC:'#2c3450',
-      mogul:'#16223f', mogulLine:'#2a3a63', ramp:'#1e2b4d', rampLine:'#33447a',
+      mogul:'#c3d6a8', mogulLine:'#a8c189', ramp:'#a9784f', rampLine:'#7d5636',
+      hat:'#e23b2b', pom:'#ffffff', coat:'#2f6fd6', pants:'#26324a', face:'#e8c9a0', glove:'#333',
+      monster:'#8a5a34', monsterDark:'#6a4322', monsterFur:'#a9754a', mouth:'#3a1c10',
+      dogA:'#7a4a22', dogB:'#5f3a1a', boarder:'#e08a1e', skier2:'#6a3ac0',
+      petalA:'#ff5a8a', petalB:'#ffd23b', bunny:'#d8d2c4', bunnyDark:'#b3ab99',
+      hudBg:'#ffffff', hudInk:'#1a2410', text:'#1a2410', accent:'#e23b2b' },
+    night:{ name:'Night', bg:'#0e1c14', tex:'#16281c', flake:'#3a5a44',
+      treeA:'#1f6a3a', treeB:'#2f9a55', trunk:'#2a2016',
+      rockA:'#2e3a44', rockB:'#46566a', rockC:'#1c2630',
+      mogul:'#16281c', mogulLine:'#274a34', ramp:'#2a3a2e', rampLine:'#3f5a48',
       hat:'#ff5a5a', pom:'#ffffff', coat:'#4d8be0', pants:'#dbe6ff', face:'#f0d0a8', glove:'#9fb0d8',
-      monster:'#d3d9e8', monsterDark:'#a6b0c8', monsterFur:'#ffffff', mouth:'#ff5a5a',
+      monster:'#4a3524', monsterDark:'#2e2014', monsterFur:'#6a4c30', mouth:'#ff7a4a',
       dogA:'#8a6a3a', dogB:'#6a4f28', boarder:'#ffb04a', skier2:'#57d08a',
-      hudBg:'#16223f', hudInk:'#eaf1ff', text:'#eaf1ff', accent:'#7fd0ff' },
-    sunset:{ name:'Sunset', bg:'#ffe6cf', tex:'#ffd3b0', flake:'#ffcaa0',
-      treeA:'#2f6a4a', treeB:'#3f8a5f', trunk:'#6a4a2b',
+      petalA:'#ff7aa8', petalB:'#ffe06a', bunny:'#c7cfd8', bunnyDark:'#8a94a2',
+      hudBg:'#0e1c14', hudInk:'#d6f5e0', text:'#d6f5e0', accent:'#7fe0a0' },
+    sunset:{ name:'Autumn', bg:'#e9d3a8', tex:'#dcc191', flake:'#cba86e',
+      treeA:'#b5642a', treeB:'#d98a34', trunk:'#5f3f22',
       rockA:'#9a877a', rockB:'#c2b0a0', rockC:'#6f5c50',
-      mogul:'#ffdcc0', mogulLine:'#f2c2a0', ramp:'#ffd0b0', rampLine:'#eab48f',
-      hat:'#b02a1a', pom:'#fff2e8', coat:'#7d3cc0', pants:'#3a2a52', face:'#f6cfa8', glove:'#6a4a4a',
-      monster:'#b7a79c', monsterDark:'#8f7f74', monsterFur:'#fff2e8', mouth:'#8a1f10',
+      mogul:'#e3c99a', mogulLine:'#cba86e', ramp:'#9a6a3f', rampLine:'#6f4a28',
+      hat:'#c0392b', pom:'#fff2e8', coat:'#2f8a6a', pants:'#3a2a1a', face:'#f0d0a8', glove:'#4a3a2a',
+      monster:'#7a4a26', monsterDark:'#5a3418', monsterFur:'#9a6438', mouth:'#2a140a',
       dogA:'#7a4a22', dogB:'#5f3a1a', boarder:'#d24a1a', skier2:'#2f9a6a',
-      hudBg:'#fff3e8', hudInk:'#5a2a12', text:'#5a2a12', accent:'#ff6a2a' },
-    phosphor:{ name:'Phosphor', bg:'#04180a', tex:'#0a2a12', flake:'#29c23f',
+      petalA:'#e0651a', petalB:'#ffd23b', bunny:'#e6dcc4', bunnyDark:'#c2b393',
+      hudBg:'#fff3e0', hudInk:'#4a2e14', text:'#4a2e14', accent:'#e0651a' },
+    phosphor:{ name:'Neon', bg:'#04180a', tex:'#0a2a12', flake:'#29c23f',
       treeA:'#1f8a2f', treeB:'#35d24a', trunk:'#146022',
       rockA:'#157a26', rockB:'#2fbf40', rockC:'#0d5018',
       mogul:'#0a2a12', mogulLine:'#1f8a2f', ramp:'#0d3a18', rampLine:'#2fbf40',
       hat:'#7dff8a', pom:'#d6ffda', coat:'#29c23f', pants:'#0d5018', face:'#a6ffb0', glove:'#35d24a',
       monster:'#7dff8a', monsterDark:'#29c23f', monsterFur:'#d6ffda', mouth:'#04180a',
       dogA:'#29c23f', dogB:'#1f8a2f', boarder:'#7dff8a', skier2:'#35d24a',
+      petalA:'#7dff8a', petalB:'#d6ffda', bunny:'#a6ffb0', bunnyDark:'#35d24a',
       hudBg:'#04180a', hudInk:'#35d24a', text:'#35d24a', accent:'#7dff8a' },
-    candy:{ name:'Candy', bg:'#fdeef6', tex:'#fbdcec', flake:'#ffc0e0',
-      treeA:'#12a596', treeB:'#2fe0cf', trunk:'#8a5a6a',
-      rockA:'#b48fae', rockB:'#d8b9d0', rockC:'#8a6a86',
-      mogul:'#fbe0ef', mogulLine:'#f2c2df', ramp:'#ffd0ec', rampLine:'#f2a8d6',
-      hat:'#ff3d81', pom:'#ffffff', coat:'#7b5cff', pants:'#3a2a6a', face:'#ffd9c0', glove:'#9a6a8a',
-      monster:'#c9a8d8', monsterDark:'#a67fc0', monsterFur:'#ffffff', mouth:'#ff3d81',
-      dogA:'#c07a9a', dogB:'#a05a7a', boarder:'#ff8a3d', skier2:'#12a596',
-      hudBg:'#ffffff', hudInk:'#5a1a3a', text:'#5a1a3a', accent:'#ff3d81' },
+    candy:{ name:'Dusk', bg:'#5c5878', tex:'#4e4a68', flake:'#9a94c8',
+      treeA:'#2a5a44', treeB:'#3a7a5a', trunk:'#3a2c1e',
+      rockA:'#6a6a86', rockB:'#8a8aa6', rockC:'#4a4a66',
+      mogul:'#54506e', mogulLine:'#726a94', ramp:'#6a5570', rampLine:'#4a3a50',
+      hat:'#ff8a3d', pom:'#ffffff', coat:'#4d8be0', pants:'#dbe6ff', face:'#f0d0a8', glove:'#c0c0d8',
+      monster:'#5a4a5a', monsterDark:'#3a2e3a', monsterFur:'#7a6a7a', mouth:'#ff8a5a',
+      dogA:'#8a6a3a', dogB:'#6a4f28', boarder:'#ffb04a', skier2:'#57d08a',
+      petalA:'#ff8ac0', petalB:'#ffe06a', bunny:'#d6d2e8', bunnyDark:'#a09ac8',
+      hudBg:'#2a2440', hudInk:'#eae4ff', text:'#eae4ff', accent:'#ff8a3d' },
   };
   let P = THEMES.classic, themeName = 'classic';
 
@@ -258,7 +268,7 @@
   const DIRS=7, DIR_ANGLE=[-1.35,-0.95,-0.5,0,0.5,0.95,1.35];
   const YETI_DIST=2000, PPM=7, YETI_SPEED=250;
 
-  let state, cam, sk, obstacles, movers, moverTimer, yeti;
+  let state, cam, sk, obstacles, movers, moverTimer, yeti, floaters;
   let elapsed, dist, style, best=0, shake=0, boostCd=0, seedY=0;
   let saver=false, hudOff=false, saverTime=0, autoTimer=0;
 
@@ -268,7 +278,7 @@
   function reset(){
     state='ready';
     sk={ wx:0, wy:0, dir:3, air:0, airMax:0, spin:0, trick:0, crash:0, hop:0 };
-    cam=0; obstacles=[]; movers=[]; moverTimer=2.0; yeti=null;
+    cam=0; obstacles=[]; movers=[]; moverTimer=2.0; yeti=null; floaters=[];
     elapsed=0; dist=0; style=0; shake=0; boostCd=0; autoTimer=0;
     seedY=-H;
     seedField(sk.wy - H*0.5, sk.wy + H*1.5);
@@ -278,7 +288,7 @@
   const sx=wx=>anchorX()+(wx-sk.wx), sy=wy=>anchorY()+(wy-sk.wy);
 
   // ---------- field ----------
-  const TYPES=['tree','tree','tree','pine2','rock','rock','mogul','mogul','ramp','stump'];
+  const TYPES=['tree','tree','tree','pine2','rock','mogul','ramp','stump','rabbit','flower'];
   function seedField(fromY,toY){
     const metres=((fromY+toY)/2)/PPM;
     const grace=clamp((metres-40)/160,0,1);
@@ -440,6 +450,8 @@
       sk.wx+=vx*dt; sk.wy+=vy*dt; dist=sk.wy/PPM;
       tickField(); tickMovers(dt); checkHits(); updateYeti(dt);
       shake=Math.max(0,shake-dt*40);
+      for(const f of floaters) f.t+=dt;
+      if(floaters.length) floaters=floaters.filter(f=>f.t<f.life);
     } else if(state==='caught'){
       yeti.eat+=dt; shake=Math.max(0,shake-dt*30);
       if(yeti.eat>1.4) die('CHOMP', true);
@@ -450,6 +462,19 @@
     if(sk.air>0) return;
     for(const o of obstacles){
       const dy=o.wy-sk.wy; if(dy<-6||dy>14) continue;
+      // squashables: rabbits score, flowers cost — no crash
+      if(o.type==='rabbit'){
+        if(!o.squashed && Math.abs(o.wx-sk.wx)<9 && Math.abs(dy)<7){
+          o.squashed=true; if(!saver){ style+=30; popText('+30', o.wx, o.wy, P.accent); }
+        }
+        continue;
+      }
+      if(o.type==='flower'){
+        if(!o.squashed && Math.abs(o.wx-sk.wx)<8 && Math.abs(dy)<6){
+          o.squashed=true; if(!saver){ style=Math.max(0,style-20); popText('-20', o.wx, o.wy, P.hudInk); }
+        }
+        continue;
+      }
       const h=HIT[o.type]; if(!h) continue;
       if(Math.abs(o.wx-sk.wx)<h.w && Math.abs(dy)<h.h){
         if(o.type==='ramp'){ if(sk.air<=0){ sk.air=0.9; sk.airMax=0.9; } }
@@ -458,6 +483,8 @@
       }
     }
   }
+
+  function popText(txt, wx, wy, col){ floaters.push({ wx, wy, txt, col, t:0, life:0.9 }); }
 
   function updateYeti(dt){
     if(dist<YETI_DIST) return;
@@ -504,6 +531,12 @@
       else if(d.k==='yeti') drawYeti();
       else drawSkier();
     }
+    for(const f of floaters){
+      const fx=sx(f.wx), fy=sy(f.wy)-10-f.t*26, a=clamp(1-f.t/f.life,0,1);
+      ctx.font='20px VT323, monospace'; ctx.textAlign='center';
+      ctx.fillStyle=hexToRgba(f.col||P.hudInk, a);
+      ctx.fillText(f.txt, fx, fy); ctx.textAlign='left';
+    }
     ctx.restore();
     if(!hudOff && (state==='run'||state==='caught')) drawHUD();
     if(state==='saver' && !hudOff) drawSaverHint();
@@ -545,35 +578,67 @@
         ctx.fillStyle=P.ramp; ctx.beginPath();
         ctx.moveTo(x-20,y+2); ctx.lineTo(x+20,y+2); ctx.lineTo(x+20,y-12); ctx.closePath(); ctx.fill();
         px(x-20,y+1,40,3,P.rampLine); break;
+      case 'rabbit':{
+        const B=P.bunny||'#d8d2c4', BD=P.bunnyDark||'#b3ab99';
+        if(o.squashed){ ctx.fillStyle=BD; blob(x,y-1,17,5); ctx.fillStyle=B; blob(x-2,y-1,6,3); break; }
+        const hop=Math.abs(Math.sin(o.wy*0.05))*2;
+        ctx.fillStyle=B; blob(x,y-4-hop,11,9);        // body
+        blob(x+4,y-9-hop,6,6);                          // head
+        px(x+2,y-16-hop,2,7,B); px(x+5,y-16-hop,2,7,B); // ears
+        ctx.fillStyle=BD; px(x+2,y-16-hop,2,3,BD); px(x+5,y-16-hop,2,3,BD);
+        ctx.fillStyle='#fff'; blob(x-7,y-3-hop,4,4);    // tail
+        px(x+6,y-10-hop,1,1,'#111'); break;             // eye
+      }
+      case 'flower':{
+        if(o.squashed){ ctx.strokeStyle=P.treeA; ctx.lineWidth=2; ctx.lineCap='round'; seg(x-6,y-1,x+6,y-1); break; }
+        ctx.strokeStyle=P.treeB; ctx.lineWidth=2; ctx.lineCap='round'; seg(x,y,x,y-10); // stem
+        ctx.fillStyle=P.treeA; blob(x+3,y-5,5,3);       // leaf
+        const pa=P.petalA||'#ff5a8a', pb=P.petalB||'#ffd23b';
+        ctx.fillStyle=pa; blob(x-3,y-12,4,4); blob(x+3,y-12,4,4); blob(x,y-15,4,4); blob(x,y-9,4,4);
+        ctx.fillStyle=pb; blob(x,y-12,3,3); break;      // centre
+      }
     }
   }
 
+  // The rider — a mountain biker, drawn from behind heading downhill.
   function drawSkier(){
     const x=sx(sk.wx), y=sy(sk.wy)-sk.hop;
     ctx.save(); ctx.translate(x,y);
-    ctx.fillStyle=hexToRgba('#1e3250',.12);
+    ctx.fillStyle=hexToRgba('#20301e',.16);
     ctx.beginPath(); ctx.ellipse(0,2+sk.hop,10,3,0,0,Math.PI*2); ctx.fill();
 
-    if(sk.crash>0){
-      ctx.strokeStyle='#3a3f45'; ctx.lineWidth=3; ctx.lineCap='round';
-      seg(-9,-2,9,-6); seg(-9,-6,9,-2);
-      px(-4,-9,8,6,P.coat); px(-3,-13,6,4,P.face); px(-4,-16,8,4,P.hat);
+    if(sk.crash>0){                       // wipeout — bike down, rider tumbling
+      ctx.strokeStyle='#15181c'; ctx.lineWidth=2; ctx.lineCap='round';
+      ctx.beginPath(); ctx.ellipse(-7,-3,5,4,0.5,0,Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(7,-5,5,4,-0.4,0,Math.PI*2); ctx.stroke();
+      px(-3,-10,7,6,P.coat); px(-2,-14,5,4,P.face); px(-3,-17,7,4,P.hat);
       ctx.restore(); return;
     }
-    if(sk.air>0 && sk.spin) ctx.rotate(sk.spin);
-    const angle=DIR_ANGLE[sk.dir], ca=Math.cos(angle), sa=Math.sin(angle);
-    ctx.strokeStyle='#2a2e33'; ctx.lineWidth=3; ctx.lineCap='round';
-    const len=13, off=4;
-    for(const s of [-1,1]){
-      const bx=s*off*ca, dx=sa*len, dy=ca*len;
-      seg(bx-dx*0.4, -dy*0.4+1, bx+dx*0.6, dy*0.6+1);
-    }
-    const lean=sa*3;
-    px(-4+lean,-9,8,8,P.coat); px(-4+lean,-3,8,4,P.pants);
+    if(sk.air>0 && sk.spin) ctx.rotate(sk.spin);   // mid-air tumble
+    const angle=DIR_ANGLE[sk.dir], sa=Math.sin(angle);
+    const lean=sa*4;
+
+    // wheels — front lower/nearer, rear up by the rider
+    ctx.strokeStyle='#15181c'; ctx.lineWidth=3; ctx.lineCap='round';
+    ctx.beginPath(); ctx.ellipse(lean*1.4, 5, 6, 4, 0, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(-lean*0.4, -5, 4, 5, 0, 0, Math.PI*2); ctx.stroke();
+    // frame
+    ctx.strokeStyle=P.accent; ctx.lineWidth=2;
+    seg(-lean*0.4,-5, lean*1.4,5); seg(-lean*0.4,-5, lean,-2);
+    // rider body + legs
+    px(-4+lean,-9,8,7,P.coat); px(-4+lean,-3,8,3,P.pants);
     ctx.strokeStyle=P.pants; ctx.lineWidth=2;
-    seg(-4+lean,-7,-8+lean,-1); seg(4+lean,-7,8+lean,-1);
-    ctx.strokeStyle=P.glove; seg(-8+lean,-1,-9+lean,5); seg(8+lean,-1,9+lean,5);
-    px(-3+lean,-14,6,5,P.face); px(-4+lean,-18,8,4,P.hat); px(2+lean,-20,3,3,P.pom);
+    seg(-3+lean,-3,-4+lean*1.3,3); seg(3+lean,-3,4+lean*1.2,3);
+    // handlebars + arms + hands
+    const hb=6;
+    ctx.strokeStyle='#15181c'; ctx.lineWidth=2; seg(-hb+lean,-9,hb+lean,-9);
+    ctx.strokeStyle=P.coat; seg(-3+lean,-8,-hb+lean,-9); seg(3+lean,-8,hb+lean,-9);
+    px(-hb-1+lean,-10,3,3,P.glove); px(hb-1+lean,-10,3,3,P.glove);
+    // head + helmet
+    px(-3+lean,-14,6,4,P.face);
+    px(-4+lean,-18,8,5,P.hat);
+    px(-4+lean,-18,8,2,P.pom);
+    px(2+lean,-15,3,2,P.pom);
     ctx.restore();
   }
 
@@ -597,20 +662,25 @@
     else { ctx.strokeStyle='#2a2e33'; ctx.lineWidth=2; ctx.lineCap='round'; seg(x-6,y+2,x+2,y+2); seg(x-2,y+2,x+6,y+2); }
   }
 
+  // The chaser — a bear. (Kept the drawYeti name; it's internal only.)
   function drawYeti(){
     if(!yeti) return;
     const x=sx(yeti.wx), y=sy(yeti.wy), eating=state==='caught';
     const stepUp=eating?0:(Math.sin(yeti.step*14)*2);
     ctx.save(); ctx.translate(x,y);
-    ctx.fillStyle=hexToRgba('#1e3250',.14);
+    ctx.fillStyle=hexToRgba('#1a1206',.22);
     ctx.beginPath(); ctx.ellipse(0,4,13,4,0,0,Math.PI*2); ctx.fill();
     const G=P.monster, GD=P.monsterDark, F=P.monsterFur;
-    px(-7,-2,5,8+stepUp,GD); px(2,-2,5,8-stepUp,GD);
-    px(-9,-18,18,18,G); px(-9,-18,18,4,F);
-    if(eating){ px(-14,-24,6,10,G); px(8,-24,6,10,G); } else { px(-14,-16,6,12,G); px(8,-16,6,12,G); }
-    px(-8,-16,16,10,F); px(-6,-14,3,3,'#111'); px(3,-14,3,3,'#111');
-    if(eating){ px(-6,-8,12,7,P.mouth); px(-6,-8,12,2,'#fff'); px(-6,-3,12,2,'#fff'); }
-    else { px(-5,-7,10,2,'#3a3f45'); px(-5,-7,2,2,'#fff'); px(3,-7,2,2,'#fff'); }
+    px(-7,-2,5,8+stepUp,GD); px(2,-2,5,8-stepUp,GD);          // legs
+    px(-9,-18,18,18,G);                                       // body
+    if(eating){ px(-14,-24,6,11,GD); px(8,-24,6,11,GD); } else { px(-14,-15,6,12,GD); px(8,-15,6,12,GD); } // arms
+    px(-8,-20,16,12,G);                                       // head
+    ctx.fillStyle=GD; blob(-7,-21,7,7); blob(7,-21,7,7);      // round ears (outer)
+    ctx.fillStyle=G;  blob(-7,-21,4,4); blob(7,-21,4,4);      // ears (inner)
+    px(-4,-12,8,5,F); px(-1,-11,3,2,'#1a0e06');               // snout + nose
+    px(-5,-16,2,2,'#120a04'); px(4,-16,2,2,'#120a04');        // eyes
+    if(eating){ px(-5,-9,10,5,P.mouth); px(-5,-9,10,2,'#fff'); }
+    else { px(-4,-8,8,2,'#3a1c10'); }
     ctx.restore();
   }
 
@@ -626,7 +696,7 @@
     if(dist>=YETI_DIST-120 && dist<YETI_DIST && state==='run'){
       ctx.font='22px VT323, monospace'; ctx.textAlign='center';
       ctx.fillStyle=(Math.floor(elapsed*4)%2)?P.accent:P.hudInk;
-      ctx.fillText('! SOMETHING IS COMING !',W/2,14); ctx.textAlign='left';
+      ctx.fillText('! A BEAR IS COMING !',W/2,14); ctx.textAlign='left';
     }
   }
   function speedReadout(){
