@@ -753,97 +753,107 @@
       ctx.fillStyle=shade(c.skin,-6); roundRect(hx-hr*0.55,hy+hr*0.3,hr*1.1,hr*0.5,4); ctx.fill(); }              // muzzle
   }
 
-  // ---- baseline hero renderer: a detailed, cel-shaded karate kid (original design) ----
-  function heroSeg(x1,y1,x2,y2,wid,base,hi){
-    ctx.lineCap='round';
-    ctx.strokeStyle=base; ctx.lineWidth=wid; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
-    ctx.strokeStyle=hi; ctx.lineWidth=wid*0.4;
-    ctx.beginPath(); ctx.moveTo(x1+wid*0.16,y1-wid*0.16); ctx.lineTo(x2+wid*0.16,y2-wid*0.16); ctx.stroke();
+  // ---- baseline hero renderer: a detailed, gradient-shaded martial artist (original) ----
+  const INK='rgba(24,15,9,.6)';
+  function capsule(x1,y1,r1,x2,y2,r2,light,dark,ink){
+    const a=Math.atan2(y2-y1,x2-x1), px=Math.cos(a+Math.PI/2), py=Math.sin(a+Math.PI/2), rM=Math.max(r1,r2);
+    const g=ctx.createLinearGradient(x1+px*rM,y1+py*rM, x1-px*rM,y1-py*rM);
+    g.addColorStop(0,light); g.addColorStop(1,dark); ctx.fillStyle=g;
+    ctx.beginPath(); ctx.arc(x1,y1,r1, a+Math.PI/2, a+Math.PI*1.5); ctx.arc(x2,y2,r2, a-Math.PI/2, a+Math.PI/2); ctx.closePath();
+    ctx.fill(); if(ink){ ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.stroke(); }
+  }
+  function ball(x,y,r,light,dark,ink){
+    const g=ctx.createRadialGradient(x-r*0.35,y-r*0.4,r*0.15, x,y,r*1.05);
+    g.addColorStop(0,light); g.addColorStop(1,dark); ctx.fillStyle=g;
+    ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill(); if(ink){ ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.stroke(); }
+  }
+  function heroFist(x,y,big){
+    const rr=big?16:12, sk='#ffdcae', skd='#c88a52';
+    ball(x,y,rr,'#fff0dc',skd,INK);
+    ctx.strokeStyle='rgba(0,0,0,.25)'; ctx.lineWidth=1.6;                        // knuckle line
+    ctx.beginPath(); ctx.arc(x,y,rr*0.66,Math.PI*0.9,Math.PI*1.9); ctx.stroke();
+    ctx.strokeStyle='#f3f4ec'; ctx.lineWidth=2.4;                                // wrap tape
+    line(x-rr*0.8,y-rr*0.05,x+rr*0.8,y-rr*0.05); line(x-rr*0.8,y+rr*0.4,x+rr*0.8,y+rr*0.4);
   }
   function drawHeroKid(f, w, h, bob, punching, kicking, special){
-    const S={ gi:'#f5f5ee', giSh:'#c6c9be', giHi:'#ffffff',
-      skin:'#f1c99a', skinSh:'#cf9d6e', skinHi:'#ffe2ba',
-      hair:'#5a3a22', hairSh:'#3c2614', hairHi:'#7c5330',
-      band:'#d3202a', bandSh:'#8f1219', belt:'#1a1a20' };
-    ctx.save();
-    if(f.crouch) ctx.scale(1,0.72);
-    const br=Math.sin(f.anim*3)*1.2;
-    const HIPy=-h*0.44, KNEEy=-h*0.22, ANKy=-h*0.03;
-    const SHy=-h*0.80+br, WAISTy=-h*0.44, CHy=-h*0.62+br;
-    const HR=w*0.30, hxc=w*0.05, hyc=-h*0.90+br;
-    const R=f.c.reach;
-    // --- back leg (planted back) ---
-    heroSeg(-w*0.12,HIPy, -w*0.30,KNEEy, w*0.26, S.giSh, S.gi);
-    heroSeg(-w*0.30,KNEEy, -w*0.40,ANKy, w*0.21, S.giSh, S.gi);
-    ctx.fillStyle=S.skinSh; dot(-w*0.44,ANKy, w*0.12);
-    // --- back arm (drawn behind torso) ---
-    const SLx=-w*0.26, SLy=SHy+w*0.06;
-    heroSeg(SLx,SLy, -w*0.06,CHy+h*0.02, w*0.19, S.skinSh, S.skin); heroFist(-w*0.05,CHy+h*0.02,false,S);
-    // --- torso: karate gi ---
-    ctx.fillStyle=S.gi;
-    ctx.beginPath(); ctx.moveTo(-w*0.34,SHy); ctx.lineTo(w*0.34,SHy); ctx.lineTo(w*0.27,WAISTy); ctx.lineTo(-w*0.27,WAISTy); ctx.closePath(); ctx.fill();
-    ctx.fillStyle=S.giSh; ctx.beginPath(); ctx.moveTo(-w*0.34,SHy); ctx.lineTo(-w*0.05,SHy); ctx.lineTo(-w*0.01,WAISTy); ctx.lineTo(-w*0.27,WAISTy); ctx.closePath(); ctx.fill();
-    ctx.fillStyle=S.gi; dot(-w*0.30,SHy+w*0.05,w*0.17); dot(w*0.30,SHy+w*0.05,w*0.17);   // gi shoulder caps
-    ctx.strokeStyle=S.giSh; ctx.lineWidth=w*0.05; ctx.lineCap='round';                   // lapel folds (V)
-    line(-w*0.18,SHy+2, w*0.02,CHy); line(w*0.18,SHy+2, w*0.02,CHy);
-    ctx.strokeStyle='rgba(0,0,0,.16)'; ctx.lineWidth=2; line(w*0.02,CHy, w*0.02,WAISTy-3); // centre seam
-    ctx.strokeStyle='rgba(0,0,0,.28)'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(-w*0.34,SHy); ctx.lineTo(w*0.34,SHy); ctx.lineTo(w*0.27,WAISTy); ctx.lineTo(-w*0.27,WAISTy); ctx.closePath(); ctx.stroke();
-    // --- black belt + knot ---
-    ctx.fillStyle=S.belt; ctx.fillRect(-w*0.30,WAISTy-2, w*0.60, h*0.06);
-    ctx.fillStyle=S.belt; ctx.fillRect(-w*0.05,WAISTy, w*0.10, h*0.15); ctx.fillRect(w*0.03,WAISTy, w*0.07, h*0.12);
-    // --- front leg ---
-    if(kicking){ const kx=w*0.98+R*0.4, ky=CHy+h*0.06;
-      heroSeg(w*0.08,HIPy, kx*0.55,(HIPy+ky)/2, w*0.27, S.gi,S.giHi);
-      heroSeg(kx*0.55,(HIPy+ky)/2, kx,ky, w*0.22, S.gi,S.giHi);
-      ctx.fillStyle=S.skin; dot(kx+w*0.06,ky,w*0.14); }
-    else { heroSeg(w*0.10,HIPy, w*0.28,KNEEy, w*0.28, S.gi,S.giHi);
-      heroSeg(w*0.28,KNEEy, w*0.32,ANKy, w*0.23, S.gi,S.giHi);
-      ctx.fillStyle=S.skin; dot(w*0.36,ANKy,w*0.13); }
-    // --- front arm ---
-    const SRx=w*0.26, SRy=SHy+w*0.06;
-    if(punching||special){ const fx=w*0.98+R*0.4, fy=CHy+h*0.02;
-      heroSeg(SRx,SRy, w*0.52,fy-4, w*0.21, S.skin,S.skinHi);
-      heroSeg(w*0.52,fy-4, fx,fy, w*0.19, S.skin,S.skinHi); heroFist(fx,fy,true,S); }
-    else if(f.blocking){ heroSeg(SRx,SRy, w*0.14,CHy-h*0.06, w*0.21, S.skin,S.skinHi); heroFist(w*0.16,CHy-h*0.06,false,S); }
-    else { heroSeg(SRx,SRy, w*0.36,CHy+h*0.02, w*0.21, S.skin,S.skinHi); heroFist(w*0.38,CHy+h*0.02,false,S); }
-    // --- head ---
-    ctx.fillStyle=S.band; const fl=Math.sin(f.anim*6)*3;                                  // headband tails (behind)
-    ctx.beginPath(); ctx.moveTo(hxc-HR*0.7,hyc-HR*0.1); ctx.lineTo(hxc-HR*1.8,hyc-HR*0.4+fl); ctx.lineTo(hxc-HR*1.7,hyc+HR*0.1+fl); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(hxc-HR*0.7,hyc+HR*0.05); ctx.lineTo(hxc-HR*1.9,hyc+HR*0.35-fl); ctx.lineTo(hxc-HR*1.7,hyc+HR*0.6-fl); ctx.closePath(); ctx.fill();
-    ctx.fillStyle=S.skinSh; ctx.fillRect(hxc-w*0.08,hyc+HR*0.55,w*0.16,HR*0.6);            // neck
-    ctx.fillStyle=S.skin; ctx.beginPath(); ctx.arc(hxc,hyc,HR,0,7); ctx.fill();            // head
-    ctx.fillStyle=S.skin; roundRect(hxc-HR*0.55,hyc+HR*0.35,HR*1.05,HR*0.75,HR*0.35); ctx.fill(); // jaw
-    ctx.fillStyle=S.skinSh; ctx.beginPath(); ctx.arc(hxc,hyc,HR,0.7,2.5); ctx.fill();      // shadow side
-    ctx.fillStyle=S.skinSh; dot(hxc-HR*0.82,hyc,HR*0.22);                                  // ear
-    ctx.strokeStyle='rgba(0,0,0,.28)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(hxc,hyc,HR,0,7); ctx.stroke();
-    // hair spikes
-    const hairY=hyc-HR*0.42;
-    ctx.fillStyle=S.hairSh; for(let i=-2;i<=3;i++) tri(hxc+i*HR*0.34-HR*0.20,hairY+2,HR*0.36,-HR*0.78);
-    ctx.fillStyle=S.hair;   for(let i=-2;i<=3;i++) tri(hxc+i*HR*0.34-HR*0.18,hairY,HR*0.34,-HR*0.72);
-    ctx.fillStyle=S.hairHi; for(let i=-1;i<=2;i++) tri(hxc+i*HR*0.34-HR*0.10,hairY-HR*0.04,HR*0.15,-HR*0.5);
-    // headband
-    ctx.fillStyle=S.band; roundRect(hxc-HR*1.04,hyc-HR*0.5,HR*2.08,HR*0.34,3); ctx.fill();
-    ctx.fillStyle=S.bandSh; ctx.fillRect(hxc-HR*1.04,hyc-HR*0.34,HR*2.08,HR*0.08);
+    const SKl='#ffdcae', SKd='#c88a52', SKf='#e6b47e';    // skin light/dark/mid
+    const GIl='#ffffff', GId='#b9bcb0';                    // gi
+    const HRl='#7c5330', HRd='#3a2412';                    // hair
+    const BNl='#f0323c', BNd='#8f1219';                    // headband
+    ctx.save(); if(f.crouch) ctx.scale(1,0.72);
+    const br=Math.sin(f.anim*3)*1.2, R=f.c.reach;
+    const ank=-h*0.05, kne=-h*0.28, hip=-h*0.46, sho=-h*0.80+br, chC=-h*0.63+br, waist=-h*0.45;
+    const HR=w*0.31, hcx=w*0.05, hcy=-h*0.93+br;
+    const shL=-w*0.30, shR=w*0.30, shY=sho+w*0.02;
+
+    // ---- back arm (behind torso) ----
+    capsule(shL,shY, w*0.13, -w*0.16,chC-h*0.02, w*0.11, SKf,SKd, INK);
+    capsule(-w*0.16,chC-h*0.02, w*0.11, -w*0.04,chC+h*0.05, w*0.09, SKf,SKd, INK);
+    heroFist(-w*0.03,chC+h*0.05,false);
+    // ---- legs (thighs behind gi skirt) ----
+    capsule(-w*0.13,hip, w*0.17, -w*0.30,kne, w*0.13, GIl,GId, INK);   // back thigh
+    capsule( w*0.13,hip, w*0.17,  w*0.26,kne, w*0.13, GIl,GId, INK);   // front thigh
+    // ---- bare muscled chest (open gi) ----
+    ctx.fillStyle=GIl;                                                  // gi torso base
+    ctx.beginPath(); ctx.moveTo(shL,sho); ctx.lineTo(shR,sho); ctx.lineTo(w*0.26,waist); ctx.lineTo(-w*0.26,waist); ctx.closePath(); ctx.fill();
+    // exposed chest wedge (skin)
+    const cg=ctx.createLinearGradient(-w*0.16,0,w*0.16,0); cg.addColorStop(0,SKd); cg.addColorStop(0.5,SKl); cg.addColorStop(1,SKf);
+    ctx.fillStyle=cg; ctx.beginPath(); ctx.moveTo(-w*0.17,sho+h*0.03); ctx.lineTo(w*0.17,sho+h*0.03); ctx.lineTo(w*0.06,waist); ctx.lineTo(-w*0.06,waist); ctx.closePath(); ctx.fill();
+    ball(-w*0.08,chC-h*0.02,w*0.12,SKl,SKd,null); ball(w*0.08,chC-h*0.02,w*0.12,SKl,SKd,null);   // pecs
+    ctx.strokeStyle='rgba(120,70,35,.5)'; ctx.lineWidth=2;                                        // abs
+    line(0,chC, 0,waist-4); line(-w*0.07,chC+h*0.06,w*0.07,chC+h*0.06); line(-w*0.06,chC+h*0.11,w*0.06,chC+h*0.11);
+    ctx.strokeStyle=GId; ctx.lineWidth=w*0.04;                                                    // gi lapel edges
+    line(-w*0.17,sho+h*0.03,-w*0.06,waist); line(w*0.17,sho+h*0.03,w*0.06,waist);
+    ball(shL,shY,w*0.15,GIl,GId,INK); ball(shR,shY,w*0.15,GIl,GId,INK);                           // gi shoulders
+    ctx.strokeStyle=INK; ctx.lineWidth=2;                                                         // torso outline
+    ctx.beginPath(); ctx.moveTo(shL,sho); ctx.lineTo(shR,sho); ctx.lineTo(w*0.26,waist); ctx.lineTo(-w*0.26,waist); ctx.closePath(); ctx.stroke();
+    // gi skirt over thigh tops
+    ctx.fillStyle=GIl; ctx.beginPath(); ctx.moveTo(-w*0.28,waist); ctx.lineTo(w*0.28,waist); ctx.lineTo(w*0.22,hip+h*0.06); ctx.lineTo(w*0.02,hip+h*0.03); ctx.lineTo(-w*0.02,hip+h*0.03); ctx.lineTo(-w*0.22,hip+h*0.06); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle=GId; ctx.lineWidth=2; line(-w*0.12,waist,-w*0.14,hip+h*0.05); line(w*0.12,waist,w*0.14,hip+h*0.05);
+    // belt
+    ctx.fillStyle='#20202a'; ctx.fillRect(-w*0.28,waist-3, w*0.56, h*0.055);
+    ctx.fillStyle='#0c0c12'; ctx.fillRect(-w*0.28,waist+h*0.03, w*0.56, h*0.015);
+    ctx.fillStyle='#20202a'; ctx.fillRect(-w*0.05,waist, w*0.09, h*0.14); ctx.fillRect(w*0.02,waist, w*0.06, h*0.11);
+    // ---- calves + feet (in front of skirt) ----
+    capsule(-w*0.30,kne, w*0.12, -w*0.40,ank, w*0.08, GId,GIl, INK); ball(-w*0.43,ank,w*0.11,SKl,SKd,INK);
+    if(kicking){ const kx=w*1.0+R*0.4, ky=chC+h*0.05;
+      capsule(w*0.13,hip,w*0.16, kx*0.55,(hip+ky)/2, w*0.13, GIl,GId, INK);
+      capsule(kx*0.55,(hip+ky)/2, w*0.13, kx,ky, w*0.1, GIl,GId, INK); ball(kx+w*0.06,ky,w*0.12,SKl,SKd,INK); }
+    else { capsule(w*0.26,kne, w*0.12, w*0.32,ank, w*0.09, GIl,GId, INK); ball(w*0.36,ank,w*0.12,SKl,SKd,INK); }
+    // ---- front arm ----
+    if(punching||special){ const fx=w*1.02+R*0.4, fy=chC;
+      capsule(shR,shY,w*0.13, w*0.55,fy-3,w*0.11, SKl,SKf, INK);
+      capsule(w*0.55,fy-3,w*0.11, fx,fy,w*0.1, SKl,SKf, INK); heroFist(fx,fy,true); }
+    else if(f.blocking){ capsule(shR,shY,w*0.13, w*0.16,chC-h*0.07,w*0.11, SKl,SKf, INK); heroFist(w*0.18,chC-h*0.07,false); }
+    else { capsule(shR,shY,w*0.13, w*0.34,chC,w*0.11, SKl,SKf, INK);
+      capsule(w*0.34,chC,w*0.11, w*0.42,chC+h*0.03,w*0.09, SKl,SKf, INK); heroFist(w*0.44,chC+h*0.03,false); }
+    // ---- head ----
+    ctx.fillStyle=BNl; const fl=Math.sin(f.anim*6)*3;                              // headband tails
+    ctx.beginPath(); ctx.moveTo(hcx-HR*0.7,hcy-HR*0.1); ctx.lineTo(hcx-HR*1.9,hcy-HR*0.4+fl); ctx.lineTo(hcx-HR*1.75,hcy+HR*0.12+fl); ctx.closePath(); ctx.fill();
+    ctx.fillStyle=BNd; ctx.beginPath(); ctx.moveTo(hcx-HR*0.7,hcy+HR*0.06); ctx.lineTo(hcx-HR*1.95,hcy+HR*0.36-fl); ctx.lineTo(hcx-HR*1.75,hcy+HR*0.62-fl); ctx.closePath(); ctx.fill();
+    capsule(hcx,hcy+HR*0.5, w*0.11, hcx,hcy+HR*1.1, w*0.13, SKf,SKd, INK);         // neck
+    ball(hcx,hcy,HR,SKl,SKd,INK);                                                  // head
+    ctx.fillStyle=SKf; roundRect(hcx-HR*0.52,hcy+HR*0.36,HR*1.02,HR*0.74,HR*0.34); ctx.fill(); // jaw
+    ctx.fillStyle=SKd; dot(hcx-HR*0.84,hcy+HR*0.05,HR*0.2);                        // ear
+    // hair — layered spikes
+    const hairY=hcy-HR*0.44;
+    ctx.fillStyle=HRd; for(let i=-2;i<=3;i++) tri(hcx+i*HR*0.34-HR*0.22,hairY+3,HR*0.4,-HR*0.86);
+    ctx.fillStyle=HRl; for(let i=-2;i<=3;i++) tri(hcx+i*HR*0.34-HR*0.18,hairY,HR*0.34,-HR*0.74);
+    ctx.fillStyle='#8a5f38'; for(let i=-1;i<=2;i++) tri(hcx+i*HR*0.34-HR*0.09,hairY-HR*0.03,HR*0.14,-HR*0.5);
+    ctx.fillStyle=SKf; ctx.fillRect(hcx-HR*0.9,hcy-HR*0.16,HR*1.8,HR*0.34);        // forehead band base
+    ctx.fillStyle=BNl; roundRect(hcx-HR*1.04,hcy-HR*0.5,HR*2.08,HR*0.36,3); ctx.fill();  // headband
+    ctx.fillStyle=BNd; ctx.fillRect(hcx-HR*1.04,hcy-HR*0.32,HR*2.08,HR*0.1);
     // face — determined
-    ctx.strokeStyle='#20140c'; ctx.lineWidth=Math.max(2.6,HR*0.18); ctx.lineCap='round';
-    line(hxc+HR*0.06,hyc-HR*0.02, hxc+HR*0.62,hyc+HR*0.14);
-    line(hxc-HR*0.52,hyc+HR*0.06, hxc-HR*0.06,hyc-HR*0.06);
-    ctx.fillStyle='#fff'; roundRect(hxc+HR*0.28,hyc+HR*0.14,HR*0.30,HR*0.2,2); ctx.fill();
-    ctx.fillStyle='#20140c'; dot(hxc+HR*0.48,hyc+HR*0.24,HR*0.085);
-    ctx.fillStyle='#fff'; roundRect(hxc-HR*0.04,hyc+HR*0.16,HR*0.22,HR*0.17,2); ctx.fill();
-    ctx.fillStyle='#20140c'; dot(hxc+HR*0.1,hyc+HR*0.25,HR*0.065);
-    ctx.strokeStyle=S.skinSh; ctx.lineWidth=2; line(hxc+HR*0.52,hyc+HR*0.2,hxc+HR*0.58,hyc+HR*0.46); line(hxc+HR*0.58,hyc+HR*0.46,hxc+HR*0.44,hyc+HR*0.5);
-    ctx.strokeStyle='#7a2a1a'; ctx.lineWidth=2.6; ctx.beginPath(); ctx.arc(hxc+HR*0.2,hyc+HR*0.72,HR*0.3,Math.PI*1.14,Math.PI*1.78); ctx.stroke();
+    ctx.strokeStyle='#20140c'; ctx.lineWidth=Math.max(2.8,HR*0.19); ctx.lineCap='round';
+    line(hcx+HR*0.08,hcy-HR*0.04, hcx+HR*0.64,hcy+HR*0.14);
+    line(hcx-HR*0.5,hcy+HR*0.04, hcx-HR*0.04,hcy-HR*0.08);
+    ctx.fillStyle='#fff'; roundRect(hcx+HR*0.3,hcy+HR*0.14,HR*0.3,HR*0.2,3); ctx.fill();
+    ctx.fillStyle='#20140c'; dot(hcx+HR*0.5,hcy+HR*0.25,HR*0.09);
+    ctx.fillStyle='#fff'; roundRect(hcx-HR*0.02,hcy+HR*0.17,HR*0.22,HR*0.17,2); ctx.fill();
+    ctx.fillStyle='#20140c'; dot(hcx+HR*0.12,hcy+HR*0.26,HR*0.07);
+    ctx.strokeStyle=SKd; ctx.lineWidth=2.2; line(hcx+HR*0.54,hcy+HR*0.2,hcx+HR*0.6,hcy+HR*0.48); line(hcx+HR*0.6,hcy+HR*0.48,hcx+HR*0.46,hcy+HR*0.52);
+    ctx.strokeStyle='#7a2a1a'; ctx.lineWidth=2.8; ctx.beginPath(); ctx.arc(hcx+HR*0.22,hcy+HR*0.74,HR*0.3,Math.PI*1.12,Math.PI*1.8); ctx.stroke();
     ctx.restore();
-  }
-  function heroFist(x,y,big,S){
-    const rr=big?18:13;
-    ctx.fillStyle=S.skin; dot(x,y,rr);
-    ctx.fillStyle=S.skinSh; ctx.beginPath(); ctx.arc(x,y,rr,0.4,2.5); ctx.fill();
-    ctx.strokeStyle='rgba(0,0,0,.3)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(x,y,rr,0,7); ctx.stroke();
-    ctx.strokeStyle='#eef0e8'; ctx.lineWidth=2.2; line(x-rr*0.7,y-rr*0.15,x+rr*0.7,y-rr*0.15); line(x-rr*0.7,y+rr*0.35,x+rr*0.7,y+rr*0.35);
-    ctx.fillStyle=S.skinSh; for(let i=-1;i<2;i++) dot(x+rr*0.5+i*rr*0.28, y-rr*0.55, rr*0.12);
   }
   function drawProjectile(p){
     ctx.save(); ctx.translate(p.x,p.y);
