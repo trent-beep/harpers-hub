@@ -142,6 +142,32 @@
   const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
   const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  // ---------- sound (synth, no assets) ----------
+  let AC, actx=null;
+  function audioInit(){ try{ AC=AC||window.AudioContext||window.webkitAudioContext; if(!actx) actx=new AC(); if(actx.state==='suspended') actx.resume(); }catch(e){} }
+  function tone(f0,f1,dur,type,vol){ if(!actx) return; const t=actx.currentTime; const o=actx.createOscillator(),g=actx.createGain();
+    o.type=type||'square'; o.frequency.setValueAtTime(f0,t); if(f1) o.frequency.exponentialRampToValueAtTime(Math.max(1,f1),t+dur);
+    g.gain.setValueAtTime(vol||0.14,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.connect(g).connect(actx.destination); o.start(t); o.stop(t+dur+0.02); }
+  function noise(dur,vol,freq){ if(!actx) return; const t=actx.currentTime; const n=actx.createBufferSource(),buf=actx.createBuffer(1,Math.max(1,actx.sampleRate*dur),actx.sampleRate);
+    const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; n.buffer=buf; const g=actx.createGain(),bp=actx.createBiquadFilter();
+    bp.type='bandpass'; bp.frequency.value=freq||800; g.gain.setValueAtTime(vol||0.14,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    n.connect(bp).connect(g).connect(actx.destination); n.start(t); n.stop(t+dur); }
+  const SFX={
+    jump:()=>tone(320,620,0.12,'square',0.12),
+    big:()=>tone(420,940,0.2,'square',0.14),
+    flip:()=>tone(520,1150,0.2,'triangle',0.14),
+    drop:()=>tone(520,120,0.16,'sawtooth',0.14),
+    slam:()=>{noise(0.16,0.3,300); tone(120,60,0.18,'sawtooth',0.2);},
+    boing:()=>tone(240,760,0.18,'sine',0.18),
+    coin:()=>tone(880,1320,0.09,'square',0.12),
+    star:()=>[784,1046,1318].forEach((f,i)=>setTimeout(()=>tone(f,f,0.1,'triangle',0.14),i*70)),
+    stomp:()=>{noise(0.1,0.25,520); tone(200,90,0.12,'square',0.14);},
+    hurt:()=>{tone(300,80,0.25,'sawtooth',0.18); noise(0.1,0.15,400);},
+    level:()=>[523,659,784].forEach((f,i)=>setTimeout(()=>tone(f,f,0.14,'triangle',0.16),i*110)),
+    win:()=>[523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,f,0.16,'triangle',0.18),i*120)),
+    over:()=>tone(400,70,0.6,'sawtooth',0.2),
+  };
+
   // ---------- physics ----------
   const GRAV=1950, RUN=250, JUMP=760, MAXVY=1050, GROUND_Y=520;
   const PW=28, PH=44;
@@ -258,19 +284,20 @@
   function jumpRelease(){ jumpHeld=false; if(airPress){ resolveAirTap(); airPress=false; } }
   function poundInput(){ if(state==='play' && !p.onGround && !p.pounding) startPound(); }
   function resolveAirTap(){ airChain++; if(airChain===2) bigJump(); else if(airChain>=3) doFlip(); }
-  function bigJump(){ p.vy=Math.min(p.vy,-JUMP*0.95); pop('BIG!',p.x+PW/2,p.y-6,'#2f7dd6'); }
+  function bigJump(){ p.vy=Math.min(p.vy,-JUMP*0.95); pop('BIG!',p.x+PW/2,p.y-6,'#2f7dd6'); SFX.big(); }
   function doFlip(){ if(p.flipped) return; p.flipped=true; p.spinning=true; p.spin=0.0001;
-    if(p.vy>-JUMP*0.4) p.vy=-JUMP*0.55; score+=40; pop('FLIP +40',p.x+PW/2,p.y-6,'#7b5cff'); }
+    if(p.vy>-JUMP*0.4) p.vy=-JUMP*0.55; score+=40; pop('FLIP +40',p.x+PW/2,p.y-6,'#7b5cff'); SFX.flip(); }
   function startPound(){ p.pounding=true; p.spinning=false; p.spin=0; p.vx=0; p.vy=MAXVY;
-    pop('DROP!',p.x+PW/2,p.y-6,'#e8452b'); }
+    pop('DROP!',p.x+PW/2,p.y-6,'#e8452b'); SFX.drop(); }
   function poundImpact(){
     p.pounding=false; shake=reduceMotion?3:9;
     const cxp=p.x+PW/2, fy=p.y+PH;
     for(const e of enemies){ if(e.dead) continue;
       if(e.type!=='plane' && Math.abs((e.x+e.w/2)-cxp)<72 && Math.abs(e.y-fy)<46){ e.dead=true; e.deadT=0; score+=50; pop('+50',e.x+e.w/2,e.y-6,'#2e7d32'); } }
-    pop('SLAM!',cxp,p.y+PH-30,'#e8452b');
+    pop('SLAM!',cxp,p.y+PH-30,'#e8452b'); SFX.slam();
   }
   window.addEventListener('keydown',e=>{
+    audioInit();
     if(e.repeat) return;
     const k=e.key;
     if(k==='ArrowLeft'||k==='a'||k==='A'){ keys.left=true; e.preventDefault(); }
@@ -286,7 +313,7 @@
     else if(k===' '||k==='ArrowUp'||k==='w'||k==='W') jumpRelease();
   });
   function bindHold(el,onDown,onUp){
-    const d=e=>{ e.preventDefault(); onDown(); };
+    const d=e=>{ e.preventDefault(); audioInit(); onDown(); };
     const u=e=>{ if(e&&e.cancelable) e.preventDefault(); onUp(); };
     el.addEventListener('pointerdown',d); el.addEventListener('pointerup',u);
     el.addEventListener('pointercancel',u); el.addEventListener('pointerleave',u);
@@ -311,7 +338,7 @@
     // jump buffer + coyote
     coyote = p.onGround ? 0.09 : Math.max(0,coyote-dt);
     jumpBuf = Math.max(0,jumpBuf-dt);
-    if(jumpBuf>0 && coyote>0){ p.vy=-JUMP; p.onGround=false; coyote=0; jumpBuf=0; }
+    if(jumpBuf>0 && coyote>0){ p.vy=-JUMP; p.onGround=false; coyote=0; jumpBuf=0; SFX.jump(); }
     if(!jumpHeld && !p.pounding && p.vy<-260) p.vy=-260;   // variable jump height
     p.vy=clamp(p.vy+GRAV*dt, -JUMP, MAXVY);
 
@@ -328,7 +355,7 @@
     if(wasAir){ for(const tr of tramps){ const box={x:p.x,y:p.y,w:PW,h:PH};
       if(aabb(box,tr) && (p.y+PH)-tr.y<24 && (p.y+PH)-tr.y>-6){
         p.y=tr.y-PH; p.vy=-JUMP*1.18; p.onGround=false; p.pounding=false; p.spinning=false; p.spin=0;
-        airChain=1; p.flipped=false; pop('BOING!',p.x+PW/2,tr.y-8,'#2f8ad6'); break; } } }
+        airChain=1; p.flipped=false; pop('BOING!',p.x+PW/2,tr.y-8,'#2f8ad6'); SFX.boing(); break; } } }
     // landing on solid ground
     if(p.onGround && wasAir){ airChain=0; p.spinning=false; p.spin=0; if(p.pounding) poundImpact(); }
     // flip spin animation
@@ -354,7 +381,7 @@
       const box={x:p.x,y:p.y,w:PW,h:PH};
       if(aabb(box,e)){
         const feet=p.y+PH;
-        if(p.vy>0 && feet-e.y<22){ e.dead=true; e.deadT=0; p.vy=-JUMP*0.55; score+=50; pop('+50',e.x+e.w/2,e.y-6,'#2e7d32'); }
+        if(p.vy>0 && feet-e.y<22){ e.dead=true; e.deadT=0; p.vy=-JUMP*0.55; score+=50; pop('+50',e.x+e.w/2,e.y-6,'#2e7d32'); SFX.stomp(); }
         else if(invuln<=0){ hurt(false); }
       }
     }
@@ -366,9 +393,9 @@
 
     // apples & stars
     for(const a of apples){ if(a.got) continue;
-      if(Math.abs((p.x+PW/2)-a.x)<20 && Math.abs((p.y+PH/2)-a.y)<24){ a.got=true; appleCount++; score+=10; pop('+10',a.x,a.y-8,'#c62828'); } }
+      if(Math.abs((p.x+PW/2)-a.x)<20 && Math.abs((p.y+PH/2)-a.y)<24){ a.got=true; appleCount++; score+=10; pop('+10',a.x,a.y-8,'#c62828'); SFX.coin(); } }
     for(const s of stars){ if(s.got) continue;
-      if(Math.abs((p.x+PW/2)-s.x)<24 && Math.abs((p.y+PH/2)-s.y)<28){ s.got=true; starCount++; score+=100; pop('+100',s.x,s.y-8,'#ff8f00'); } }
+      if(Math.abs((p.x+PW/2)-s.x)<24 && Math.abs((p.y+PH/2)-s.y)<28){ s.got=true; starCount++; score+=100; pop('+100',s.x,s.y-8,'#ff8f00'); SFX.star(); } }
 
     // goal (ring the bell)
     if(p.x+PW>goal.x && p.x<goal.x+30 && p.y+PH>goal.y-90){ nextLevel(); return; }
@@ -383,18 +410,19 @@
   }
 
   function hurt(pit){
-    lives--; invuln=1.3;
+    lives--; invuln=1.3; SFX.hurt();
     if(lives<=0){ end('GAME OVER'); return; }
     if(pit){ p.x=lastSafeX; p.y=lastSafeY; p.vx=0; p.vy=0; }
     else { p.vy=-320; p.vx=-p.dir*180; }
   }
   function nextLevel(){
     score += 100 + Math.max(0,lives)*50;               // level-clear bonus
-    if(level < LEVELS.length-1){ level++; loadLevel(level); }
+    if(level < LEVELS.length-1){ level++; loadLevel(level); SFX.level(); }
     else end('YOU WIN!');
   }
   function end(title){
     state='over'; document.getElementById('pad').hidden=true;
+    (title==='YOU WIN!'?SFX.win:SFX.over)();
     if(score>best){ best=score; try{localStorage.setItem('recessrush_best',String(best));}catch(e){} }
     document.getElementById('overTitle').textContent=title;
     document.getElementById('finalScore').textContent=score.toLocaleString();
@@ -598,6 +626,7 @@
 
   // ---------- flow ----------
   function startGame(){
+    audioInit();
     document.getElementById('start').hidden=true; document.getElementById('over').hidden=true;
     document.getElementById('pad').hidden=false; reset(); state='play'; last=performance.now();
   }

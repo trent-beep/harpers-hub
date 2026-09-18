@@ -264,6 +264,26 @@
   const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  // ---------- sound (synth, no assets) ----------
+  let AC, actx=null;
+  function audioInit(){ try{ AC=AC||window.AudioContext||window.webkitAudioContext; if(!actx) actx=new AC(); if(actx.state==='suspended') actx.resume(); }catch(e){} }
+  function tone(f0,f1,dur,type,vol){ if(!actx) return; const t=actx.currentTime; const o=actx.createOscillator(),g=actx.createGain();
+    o.type=type||'square'; o.frequency.setValueAtTime(f0,t); if(f1) o.frequency.exponentialRampToValueAtTime(Math.max(1,f1),t+dur);
+    g.gain.setValueAtTime(vol||0.14,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.connect(g).connect(actx.destination); o.start(t); o.stop(t+dur+0.02); }
+  function noise(dur,vol,freq){ if(!actx) return; const t=actx.currentTime; const n=actx.createBufferSource(),buf=actx.createBuffer(1,Math.max(1,actx.sampleRate*dur),actx.sampleRate);
+    const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; n.buffer=buf; const g=actx.createGain(),bp=actx.createBiquadFilter();
+    bp.type='bandpass'; bp.frequency.value=freq||800; g.gain.setValueAtTime(vol||0.14,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    n.connect(bp).connect(g).connect(actx.destination); n.start(t); n.stop(t+dur); }
+  const SFX={
+    jump:()=>tone(300,640,0.14,'square',0.12),
+    bump:()=>tone(200,120,0.08,'square',0.1),
+    point:()=>tone(880,1320,0.09,'square',0.12),
+    boo:()=>tone(300,150,0.16,'sawtooth',0.12),
+    crash:()=>{noise(0.18,0.3,300); tone(160,60,0.2,'sawtooth',0.18);},
+    boost:()=>tone(400,900,0.18,'sawtooth',0.12),
+    chomp:()=>{noise(0.14,0.35,260); tone(140,50,0.3,'sawtooth',0.2);},
+  };
+
   // ---------- config ----------
   const DIRS=7, DIR_ANGLE=[-1.35,-0.95,-0.5,0,0.5,0.95,1.35];
   const YETI_DIST=2000, PPM=7, YETI_SPEED=250;
@@ -331,7 +351,7 @@
       for(const m of movers){
         if(m.kind==='dog') continue;
         if(Math.abs(m.wx-sk.wx)<10 && Math.abs(m.wy-sk.wy)<10){
-          sk.crash=1.15; shake=reduceMotion?4:16; style=Math.max(0,style-40); break;
+          sk.crash=1.15; shake=reduceMotion?4:16; style=Math.max(0,style-40); SFX.crash(); break;
         }
       }
     }
@@ -350,6 +370,7 @@
     return true;
   }
   window.addEventListener('keydown', e=>{
+    audioInit();
     if(saver && state==='saver'){ stopSaver(); return; }
     if(e.repeat){ if(press(e.key,true)) e.preventDefault(); return; }
     if(press(e.key,true)){
@@ -357,6 +378,7 @@
       if(state==='run'){
         if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') carve(-1);
         if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') carve(1);
+        if(e.key===' '||e.key==='Spacebar') SFX.boost();
       }
     }
     if((e.key==='Enter'||e.key===' ') && (state==='ready'||state==='dead')) startOrRestart();
@@ -372,14 +394,14 @@
   const pad=document.getElementById('pad');
   function bindSteer(el,side){
     let held=false,timer=null;
-    const down=e=>{ e.preventDefault(); if(state!=='run') return; held=true; carve(side); rep(); };
+    const down=e=>{ e.preventDefault(); audioInit(); if(state!=='run') return; held=true; carve(side); rep(); };
     const up=e=>{ if(e&&e.cancelable) e.preventDefault(); held=false; if(timer){clearTimeout(timer); timer=null;} };
     function rep(){ if(!held) return; timer=setTimeout(()=>{ carve(side); rep(); },130); }
     el.addEventListener('pointerdown',down);
     el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up); el.addEventListener('pointerleave',up);
   }
   function bindTuck(el){
-    const down=e=>{ e.preventDefault(); keys.tuck=true; };
+    const down=e=>{ e.preventDefault(); audioInit(); keys.tuck=true; };
     const up=e=>{ if(e&&e.cancelable) e.preventDefault(); keys.tuck=false; };
     el.addEventListener('pointerdown',down);
     el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up); el.addEventListener('pointerleave',up);
@@ -465,21 +487,21 @@
       // squashables: rabbits score, flowers cost — no crash
       if(o.type==='rabbit'){
         if(!o.squashed && Math.abs(o.wx-sk.wx)<9 && Math.abs(dy)<7){
-          o.squashed=true; if(!saver){ style+=30; popText('+30', o.wx, o.wy, P.accent); }
+          o.squashed=true; if(!saver){ style+=30; popText('+30', o.wx, o.wy, P.accent); SFX.point(); }
         }
         continue;
       }
       if(o.type==='flower'){
         if(!o.squashed && Math.abs(o.wx-sk.wx)<8 && Math.abs(dy)<6){
-          o.squashed=true; if(!saver){ style=Math.max(0,style-20); popText('-20', o.wx, o.wy, P.hudInk); }
+          o.squashed=true; if(!saver){ style=Math.max(0,style-20); popText('-20', o.wx, o.wy, P.hudInk); SFX.boo(); }
         }
         continue;
       }
       const h=HIT[o.type]; if(!h) continue;
       if(Math.abs(o.wx-sk.wx)<h.w && Math.abs(dy)<h.h){
-        if(o.type==='ramp'){ if(sk.air<=0){ sk.air=0.9; sk.airMax=0.9; } }
-        else if(o.type==='mogul'){ if(sk.air<=0){ sk.air=0.34; sk.airMax=0.34; } }
-        else if(!saver){ if(sk.crash<=0){ sk.crash=1.15; shake=reduceMotion?4:16; style=Math.max(0,style-40); } }
+        if(o.type==='ramp'){ if(sk.air<=0){ sk.air=0.9; sk.airMax=0.9; SFX.jump(); } }
+        else if(o.type==='mogul'){ if(sk.air<=0){ sk.air=0.34; sk.airMax=0.34; SFX.bump(); } }
+        else if(!saver){ if(sk.crash<=0){ sk.crash=1.15; shake=reduceMotion?4:16; style=Math.max(0,style-40); SFX.crash(); } }
       }
     }
   }
@@ -496,7 +518,7 @@
     let dx=sk.wx-yeti.wx, dy=sk.wy-yeti.wy; const d=Math.hypot(dx,dy)||1;
     yeti.wx+=(dx/d)*YETI_SPEED*dt; yeti.wy+=(dy/d)*YETI_SPEED*dt;
     if(saver){ if(dy < -H*0.8) yeti=null; return; }   // never eats in screensaver
-    if(d<20 && sk.air<=0){ state='caught'; yeti.eat=0; yeti.wx=sk.wx; yeti.wy=sk.wy-2; shake=reduceMotion?4:14; }
+    if(d<20 && sk.air<=0){ state='caught'; yeti.eat=0; yeti.wx=sk.wx; yeti.wy=sk.wy-2; shake=reduceMotion?4:14; SFX.chomp(); }
   }
 
   function die(title, eaten){

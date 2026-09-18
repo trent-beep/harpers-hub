@@ -1,0 +1,15 @@
+{
+  "name": "Recess Rumble",
+  "short_name": "Recess Rumble",
+  "description": "An original retro 1v1 fighting game — two players on one keyboard, or 1P vs CPU.",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#20263a",
+  "theme_color": "#20263a",
+  "start_url": "./",
+  "scope": "./",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable any" }
+  ]
+}
