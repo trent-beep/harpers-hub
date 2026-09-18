@@ -158,7 +158,7 @@
   let state='title';   // title / help / select / vs / fight / roundend / gnext / matchend
   let mode='2p';       // '2p' / 'cpu' / 'arcade'
   let f1,f2,projectiles=[],fx=[],cam=0;
-  let roundTime=60, roundResult='', tmr=0, msg='', vsT=0, koFlash=0;
+  let roundTime=60, roundResult='', tmr=0, msg='', vsT=0, koFlash=0, hitstop=0;
   let roundsToWin=2, gIndex=0, gQueue=[];   // arcade gauntlet
   let arena=1, chosenArena=-1;              // chosenArena -1 = random each match; else forced (boss always Frozen Peak)
   const STAGE_NAMES=['Sunset Beach','Schoolyard','City Rooftop','The Dojo','Frozen Peak','Volcano Cavern','Neon City','Jungle Temple'];
@@ -272,13 +272,16 @@
     if(holdingBack){
       def.hp=Math.max(0,def.hp-Math.max(1,Math.round(dmg*0.18)));
       def.vx = Math.sign(def.x-att.x)*120; def.meter=Math.min(100,def.meter+6); att.meter=Math.min(100,att.meter+4);
-      SFX.block(); fx.push({type:'spark',x:def.x-def.dir*def.w*0.4,y:def.y-def.h*0.6,t:0,block:true});
+      SFX.block(); shake(3); hitstop=Math.max(hitstop,0.03);
+      fx.push({type:'spark',x:def.x-def.dir*def.w*0.4,y:def.y-def.h*0.6,t:0,block:true});
     } else {
       def.hp=Math.max(0,def.hp-dmg); def.hitstun=stun; def.attack=null;
       def.vx=Math.sign(def.x-att.x)*knock; if(knock>340){ def.vy=-260; def.onGround=false; }
       def.flash=0.12; att.meter=Math.min(100,att.meter+16); def.meter=Math.min(100,def.meter+10);
-      SFX.hit(); shake(dmg>14?9:5); fx.push({type:'spark',x:def.x-def.dir*def.w*0.3,y:def.y-def.h*0.6,t:0});
-      if(def.hp<=0){ def.attack=null; }
+      const heavy=dmg>14;
+      SFX.hit(); shake(heavy?11:6); hitstop=Math.max(hitstop, heavy?0.085:0.05);   // impact freeze
+      fx.push({type:'spark',x:def.x-def.dir*def.w*0.3,y:def.y-def.h*0.6,t:0,big:heavy});
+      if(def.hp<=0){ def.attack=null; shake(14); hitstop=0.12; }
     }
   }
 
@@ -372,6 +375,7 @@
     if(state==='vs'){ vsT-=dt; if(vsT<=0){ state='fight'; } return; }
     if(state==='gnext'){ tmr+=dt; if(tmr>1.7) advanceGauntlet(); return; }
     if(state!=='fight'){ if(state==='roundend'||state==='matchend'){ tmr+=dt; } return; }
+    if(hitstop>0){ hitstop=Math.max(0,hitstop-dt); if(shakeAmt>0) shakeAmt=Math.max(0,shakeAmt-dt*40); return; }  // impact freeze
     const i1=readInput(0,f1,f2), i2=readInput(1,f2,f1);
     stepFighter(f1,f2,i1); stepFighter(f2,f1,i2);
     stepProjectiles();
@@ -2668,8 +2672,11 @@
   function drawQuake(e){ const r=e.t*420; ctx.strokeStyle='rgba(255,210,59,'+clamp(1-e.t/0.35,0,1)+')'; ctx.lineWidth=6;
     ctx.beginPath(); ctx.moveTo(e.x-r,FLOOR); ctx.lineTo(e.x-r+18,FLOOR-16); ctx.moveTo(e.x+r,FLOOR); ctx.lineTo(e.x+r-18,FLOOR-16); ctx.stroke(); }
   function drawSpark(e){ const a=clamp(1-e.t/0.25,0,1); ctx.save(); ctx.globalAlpha=a; ctx.translate(e.x,e.y);
-    ctx.fillStyle=e.block?'#bfe6ff':'#fff2a0'; for(let i=0;i<6;i++){ const an=i/6*7, rr=6+e.t*70;
-      ctx.fillRect(Math.cos(an)*rr,Math.sin(an)*rr,4,4); } ctx.restore(); }
+    const big=e.big, n=big?10:6, sz=big?7:4, spd=big?110:70;
+    if(big){ ctx.fillStyle='rgba(255,255,255,'+(a*0.85)+')'; ctx.beginPath(); ctx.arc(0,0,10+e.t*40,0,7); ctx.fill(); }  // flash
+    ctx.fillStyle=e.block?'#bfe6ff':(big?'#ffd23b':'#fff2a0');
+    for(let i=0;i<n;i++){ const an=i/n*7, rr=6+e.t*spd; ctx.fillRect(Math.cos(an)*rr,Math.sin(an)*rr,sz,sz); }
+    ctx.restore(); }
 
   function line(x1,y1,x2,y2){ ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); }
   function dot(x,y,r){ ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill(); }
