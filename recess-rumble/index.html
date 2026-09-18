@@ -158,7 +158,7 @@
   let state='title';   // title / help / select / vs / fight / roundend / gnext / matchend
   let mode='2p';       // '2p' / 'cpu' / 'arcade'
   let f1,f2,projectiles=[],fx=[],cam=0;
-  let roundTime=60, roundResult='', tmr=0, msg='', vsT=0;
+  let roundTime=60, roundResult='', tmr=0, msg='', vsT=0, koFlash=0;
   let roundsToWin=2, gIndex=0, gQueue=[];   // arcade gauntlet
   let arena=1, chosenArena=-1;              // chosenArena -1 = random each match; else forced (boss always Frozen Peak)
   const STAGE_NAMES=['Sunset Beach','Schoolyard','City Rooftop','The Dojo','Frozen Peak','Volcano Cavern','Neon City','Jungle Temple'];
@@ -184,7 +184,7 @@
   function mkFighter(ci, side, cpu){
     const c=ROSTER[ci];
     return { ci, c, cpu:!!cpu, side, x: side<0?300:660, y:FLOOR, vx:0, vy:0, dir: side<0?1:-1,
-      w:c.big?66:48, h:c.big?128:104, hp:c.hp, maxhp:c.hp, onGround:true,
+      w:c.big?82:62, h:c.big?150:126, hp:c.hp, maxhp:c.hp, onGround:true,
       attack:null, atkT:0, hitBy:null, hitstun:0, recover:0, meter:0, wins:0,
       anim:0, crouch:false, blocking:false, flash:0, ai:{t:0,act:null,blockT:0} };
   }
@@ -368,6 +368,7 @@
   }
 
   function update(){
+    if(koFlash>0) koFlash-=dt;
     if(state==='vs'){ vsT-=dt; if(vsT<=0){ state='fight'; } return; }
     if(state==='gnext'){ tmr+=dt; if(tmr>1.7) advanceGauntlet(); return; }
     if(state!=='fight'){ if(state==='roundend'||state==='matchend'){ tmr+=dt; } return; }
@@ -379,6 +380,7 @@
     // round end conditions
     if(f1.hp<=0 || f2.hp<=0 || roundTime<=0){
       let winner=null;
+      if(f1.hp<=0 || f2.hp<=0) koFlash=1.5;    // a knockout (not a timeout)
       if(f1.hp<=0 && f2.hp<=0) winner=null;
       else if(f1.hp<=0) winner=f2; else if(f2.hp<=0) winner=f1;
       else winner = f1.hp>f2.hp? f1 : (f2.hp>f1.hp? f2 : null);
@@ -458,7 +460,9 @@
     if(state==='roundend') drawCenter(roundResult, 'Press any key…', tmr);
     if(state==='gnext'){ const ni=gQueue[gIndex]; drawCenter('YOU WIN!', 'Next up: '+ROSTER[ni].name+(ni===5?'  —  the SNOW BEAST!':''), tmr); }
     if(state==='matchend') drawCenter(msg, mode==='arcade'&&msg==='CHAMPION!'?'You beat the gauntlet! ENTER rematch · BACKSPACE menu':'ENTER rematch · BACKSPACE menu', tmr);
+    scanlines();
   }
+  function scanlines(){ ctx.fillStyle='rgba(0,0,0,.10)'; for(let sy=0; sy<VH; sy+=3) ctx.fillRect(0,sy,VW,1); }
   function skyGrad(a,b){ const g=ctx.createLinearGradient(0,0,0,VH); g.addColorStop(0,a); g.addColorStop(1,b); ctx.fillStyle=g; ctx.fillRect(0,0,VW,VH); }
   function groundBand(top,bot,lineCol){ ctx.fillStyle=bot; ctx.fillRect(0,FLOOR,VW,VH-FLOOR);
     ctx.fillStyle=top; ctx.fillRect(0,FLOOR,VW,14); ctx.fillStyle=lineCol||'rgba(0,0,0,.12)'; ctx.fillRect(0,FLOOR,VW,4); }
@@ -548,26 +552,47 @@
     ctx.fillStyle=col; if(flip) ctx.fillRect(x+2+(w-4-pw),y+2,pw,h-4); else ctx.fillRect(x+2,y+2,pw,h-4);
     ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.strokeRect(x+1,y+1,w-2,h-2);
   }
+  function hbar(x,y,w,h,v,max,flip){       // arcade health: yellow over red
+    ctx.fillStyle='#1a0808'; ctx.fillRect(x-2,y-2,w+4,h+4);
+    ctx.fillStyle='#c0241c'; ctx.fillRect(x,y,w,h);
+    const pw=w*clamp(v/max,0,1);
+    const g=ctx.createLinearGradient(0,y,0,y+h); g.addColorStop(0,'#fff2a0'); g.addColorStop(0.5,'#ffd23b'); g.addColorStop(1,'#e0961a');
+    ctx.fillStyle=g; if(flip) ctx.fillRect(x+(w-pw),y,pw,h); else ctx.fillRect(x,y,pw,h);
+    ctx.fillStyle='rgba(255,255,255,.35)'; if(pw>0){ if(flip) ctx.fillRect(x+(w-pw),y,pw,2); else ctx.fillRect(x,y,pw,2); }
+    ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.strokeRect(x-2,y-2,w+4,h+4);
+  }
   function drawHUD(){
+    // top arcade strip
+    ctx.fillStyle='rgba(8,10,20,.72)'; ctx.fillRect(0,0,VW,104);
     // health
-    bar(30,26,380,26, f1.hp, f1.maxhp, '#4bd44b', false);
-    bar(VW-30-380,26,380,26, f2.hp, f2.maxhp, '#4bd44b', true);
-    // meter
-    bar(30,58,240,12, f1.meter,100, f1.meter>=100?'#ffd23b':'#5fd0ff', false);
-    bar(VW-30-240,58,240,12, f2.meter,100, f2.meter>=100?'#ffd23b':'#5fd0ff', true);
-    // names + wins
-    ctx.fillStyle='#fff'; ctx.font='800 22px Trebuchet MS, sans-serif'; ctx.textAlign='left';
-    ctx.fillText(f1.c.name.toUpperCase(),30,92); ctx.textAlign='right'; ctx.fillText(f2.c.name.toUpperCase(),VW-30,92);
-    ctx.textAlign='center';
-    for(let i=0;i<2;i++){ ctx.fillStyle=i<f1.wins?'#ffd23b':'#333a55'; ctx.beginPath(); ctx.arc(300+i*22,84,7,0,7); ctx.fill();
-      ctx.fillStyle=i<f2.wins?'#ffd23b':'#333a55'; ctx.beginPath(); ctx.arc(VW-300-i*22,84,7,0,7); ctx.fill(); }
-    // timer
-    ctx.fillStyle='#fff'; ctx.font='800 34px Trebuchet MS, sans-serif';
-    ctx.fillText(String(Math.max(0,Math.ceil(roundTime))), VW/2, 52);
+    hbar(30,28,384,24, f1.hp, f1.maxhp, false);
+    hbar(VW-30-384,28,384,24, f2.hp, f2.maxhp, true);
+    // super meter
+    bar(30,60,240,12, f1.meter,100, f1.meter>=100?'#ffd23b':'#5fd0ff', false);
+    bar(VW-30-240,60,240,12, f2.meter,100, f2.meter>=100?'#ffd23b':'#5fd0ff', true);
+    ctx.fillStyle='#9fb0d8'; ctx.font='800 11px Trebuchet MS, sans-serif'; ctx.textAlign='left';
+    ctx.fillText('SUPER',30,86); ctx.textAlign='right'; ctx.fillText('SUPER',VW-30,86);
+    // names + win pips
+    ctx.fillStyle='#fff'; ctx.font='900 24px Trebuchet MS, sans-serif'; ctx.textAlign='left';
+    ctx.fillText(f1.c.name.toUpperCase(),86,90); ctx.textAlign='right'; ctx.fillText(f2.c.name.toUpperCase(),VW-86,90);
+    for(let i=0;i<2;i++){ ctx.fillStyle=i<f1.wins?'#ffd23b':'#2a3350'; dot(300+i*20,84,6);
+      ctx.fillStyle=i<f2.wins?'#ffd23b':'#2a3350'; dot(VW-300-i*20,84,6); }
+    // boxed timer
+    ctx.fillStyle='#0d1120'; ctx.fillRect(VW/2-34,10,68,52); ctx.strokeStyle='#ffd23b'; ctx.lineWidth=3; ctx.strokeRect(VW/2-34,10,68,52);
+    ctx.fillStyle='#fff'; ctx.font='900 38px Trebuchet MS, sans-serif'; ctx.textAlign='center';
+    ctx.fillText(String(Math.max(0,Math.ceil(roundTime))), VW/2, 20);
+    ctx.textAlign='left';
+    if(koFlash>0){ ctx.textAlign='center'; ctx.save(); ctx.globalAlpha=clamp(koFlash,0,1);
+      ctx.font='900 130px Trebuchet MS, sans-serif'; ctx.lineWidth=8; ctx.strokeStyle='#161016'; ctx.fillStyle='#e8452b';
+      ctx.strokeText('K.O.',VW/2,VH*0.32); ctx.fillText('K.O.',VW/2,VH*0.32); ctx.restore(); ctx.textAlign='left'; }
   }
   function drawVS(){ ctx.fillStyle='rgba(0,0,0,.35)'; ctx.fillRect(0,0,VW,VH);
-    ctx.textAlign='center'; ctx.fillStyle='#ffd23b'; ctx.font='900 84px Trebuchet MS, sans-serif';
-    ctx.fillText(vsT>0.5?'READY':'FIGHT!', VW/2, VH/2);
+    ctx.textAlign='center';
+    const roundNo=(f1.wins+f2.wins+1);
+    ctx.lineWidth=7; ctx.strokeStyle='#161016'; ctx.font='900 84px Trebuchet MS, sans-serif';
+    const txt = vsT>0.5? ('ROUND '+roundNo) : 'FIGHT!';
+    ctx.fillStyle = vsT>0.5? '#ffd23b' : '#e8452b';
+    ctx.strokeText(txt, VW/2, VH/2); ctx.fillText(txt, VW/2, VH/2);
     ctx.fillStyle='#fff'; ctx.font='800 26px Trebuchet MS, sans-serif';
     ctx.fillText(f1.c.name+'   vs   '+f2.c.name, VW/2, VH/2+50);
     ctx.fillStyle='#b8e0ff'; ctx.font='700 18px Trebuchet MS, sans-serif';
@@ -585,7 +610,7 @@
     for(let i=0;i<n;i++){ const x=startX+i*gap, y=250;
       ctx.fillStyle='#171d30'; ctx.strokeStyle='#33406a'; ctx.lineWidth=2;
       roundRect(x-56,y-96,112,150,10); ctx.fill(); ctx.stroke();
-      const ghost={ci:i,c:ROSTER[i],x,y:y+40,dir:1,w:ROSTER[i].big?60:44,h:ROSTER[i].big?96:82,anim:performance.now()/1000+i,
+      const ghost={ci:i,c:ROSTER[i],x,y:y+44,dir:1,w:ROSTER[i].big?58:50,h:ROSTER[i].big?104:96,anim:performance.now()/1000+i,
         attack:null,hitstun:0,flash:0,meter:0,crouch:false,blocking:false,onGround:true,vy:0,vx:0};
       drawFighter(ghost,true);
       ctx.fillStyle='#fff'; ctx.font='800 16px Trebuchet MS, sans-serif'; ctx.fillText(ROSTER[i].name,x,y+74);
@@ -606,6 +631,7 @@
       else { ctx.fillStyle='#b8e0ff'; ctx.fillText('Now pick your OPPONENT with A/D, F to fight  —  '+ROSTER[sel.p2].name+(sel.p2===5?'  (the Snow Beast!)':''), VW/2, 450); }
     } else { ctx.fillStyle='#b8e0ff'; ctx.fillText('ARCADE: beat every fighter — the SNOW BEAST is the final boss!', VW/2, 450); }
     ctx.fillStyle='#8fa0c8'; ctx.fillText('Backspace = menu', VW/2, 476);
+    scanlines();
   }
   function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r);
     ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
@@ -633,20 +659,27 @@
     if(kicking){ ctx.strokeStyle=shade(c.trim,-14); ctx.lineWidth=Math.max(8,w*0.22);
       const kx=w*0.66+c.reach*0.4, ky=topY+h*0.5+bob; line(w*0.08, topY+h*0.62+bob, kx, ky);
       ctx.fillStyle=shade(c.trim,-28); dot(kx,ky,w*0.2); }   // boot
-    // bulky torso with outline, chest, collar and belt
-    const tX=-w*0.40, tY=topY+h*0.30+bob, tW=w*0.80, tH=h*0.46;
-    ctx.fillStyle=c.jersey; roundRect(tX,tY,tW,tH,7); ctx.fill();
-    ctx.strokeStyle='rgba(0,0,0,.30)'; ctx.lineWidth=2.5; roundRect(tX,tY,tW,tH,7); ctx.stroke();
-    ctx.fillStyle=shade(c.jersey,22); ctx.fillRect(-w*0.05,tY, w*0.10, tH*0.6);                 // sheen
-    ctx.fillStyle=shade(c.jersey,-16); roundRect(tX-w*0.05,tY,tW+w*0.10,tH*0.22,6); ctx.fill(); // collar/shoulders
-    ctx.strokeStyle='rgba(0,0,0,.16)'; ctx.lineWidth=2;                                          // chest muscles
-    ctx.beginPath(); ctx.arc(-w*0.13,tY+tH*0.36,w*0.15,-0.3,1.5); ctx.stroke();
-    ctx.beginPath(); ctx.arc( w*0.13,tY+tH*0.36,w*0.15,1.6,3.4); ctx.stroke();
-    ctx.fillStyle=shade(c.trim,-8); ctx.fillRect(tX,tY+tH-h*0.055,tW,h*0.055);                   // belt
-    ctx.fillStyle='#ffd23b'; ctx.fillRect(-w*0.06,tY+tH-h*0.055,w*0.12,h*0.055);                 // buckle
-    // arms + knuckled fists
-    ctx.strokeStyle=c.skin; ctx.lineWidth=Math.max(6,w*0.18); ctx.lineCap='round';
-    const armY=topY+h*0.44+bob;
+    // bulky torso with outline, cel-shading, gi V-neck, chest and belt
+    const tX=-w*0.42, tY=topY+h*0.28+bob, tW=w*0.84, tH=h*0.48;
+    ctx.fillStyle=c.jersey; roundRect(tX,tY,tW,tH,8); ctx.fill();
+    // directional shading: light on the front (+x, toward foe), shadow on the back
+    ctx.save(); roundRect(tX,tY,tW,tH,8); ctx.clip();
+    ctx.fillStyle='rgba(255,255,255,.16)'; ctx.fillRect(tX+tW*0.6,tY,tW*0.4,tH);
+    ctx.fillStyle='rgba(0,0,0,.20)'; ctx.fillRect(tX,tY,tW*0.34,tH);
+    ctx.restore();
+    ctx.strokeStyle='rgba(0,0,0,.32)'; ctx.lineWidth=2.5; roundRect(tX,tY,tW,tH,8); ctx.stroke();
+    ctx.fillStyle=shade(c.jersey,-18); roundRect(tX-w*0.05,tY-2,tW+w*0.10,tH*0.2,6); ctx.fill();     // collar/shoulders
+    ctx.strokeStyle=shade(c.jersey,-34); ctx.lineWidth=3;                                            // gi V-neck
+    line(-w*0.15,tY+tH*0.04, 0,tY+tH*0.34); line(w*0.15,tY+tH*0.04, 0,tY+tH*0.34);
+    ctx.strokeStyle='rgba(0,0,0,.18)'; ctx.lineWidth=2;                                              // chest/abs
+    ctx.beginPath(); ctx.arc(-w*0.14,tY+tH*0.4,w*0.16,-0.3,1.5); ctx.stroke();
+    ctx.beginPath(); ctx.arc( w*0.14,tY+tH*0.4,w*0.16,1.6,3.4); ctx.stroke();
+    line(0,tY+tH*0.42,0,tY+tH*0.7);
+    ctx.fillStyle=shade(c.trim,-8); ctx.fillRect(tX,tY+tH-h*0.06,tW,h*0.06);                         // belt
+    ctx.fillStyle='#ffd23b'; ctx.fillRect(-w*0.06,tY+tH-h*0.06,w*0.12,h*0.06);                       // buckle
+    // arms + knuckled fists (beefy)
+    ctx.strokeStyle=c.skin; ctx.lineWidth=Math.max(7,w*0.22); ctx.lineCap='round';
+    const armY=topY+h*0.42+bob;
     const fist=(px,py,big)=>{ const r=big?w*0.25:w*0.18; ctx.fillStyle=shade(c.skin,-10); dot(px,py,r);
       ctx.strokeStyle='rgba(0,0,0,.28)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(px,py,r,0,7); ctx.stroke();
       ctx.fillStyle=shade(c.skin,-26); for(let i=-1;i<2;i++) dot(px+i*r*0.5, py-r*0.45, r*0.16);
