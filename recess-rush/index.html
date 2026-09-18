@@ -14,6 +14,9 @@
 <meta name="twitter:title" content="Recess Rush">
 <meta name="twitter:description" content="An original school-themed platformer. Collect apples, dodge hazards, ring the bell.">
 
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -141,44 +144,73 @@
   const PW=28, PH=44;
 
   // ---------- level ----------
-  let solids, apples, stars, enemies, goal, floaters, levelW, spawn;
+  let solids, apples, stars, enemies, hazards, goal, floaters, levelW, spawn;
   function G(x,w){ return {x, y:GROUND_Y, w, h:DH-GROUND_Y+40}; }          // ground slab (with gaps)
   function plat(x,y,w){ return {x, y, w, h:22, book:true}; }               // floating stacked-book platform
-  function buildLevel(){
-    floaters=[];
-    solids=[
-      G(0,940), G(1080,640), G(1840,420), G(2420,900), G(3520,1120),
-      plat(560,410,110), plat(940,330,120), plat(1360,400,120), plat(1560,300,110),
-      plat(2000,360,150), plat(2300,430,110), plat(2760,370,130), plat(3120,300,120), plat(3360,430,120),
-    ];
-    apples=[];
-    const av=[300,360,620,660,960,1000,1040,1160,1260,1620,1660,2040,2080,2340,2520,2560,2600,2820,2860,3160,3200,3400,3700,3760,3820];
-    for(const x of av) apples.push({x, y:GROUND_Y-40, got:false});
-    // lift some apples onto platforms
-    apples.push({x:600,y:372,got:false},{x:980,y:292,got:false},{x:1400,y:362,got:false},
-      {x:2050,y:322,got:false},{x:2800,y:332,got:false},{x:3160,y:262,got:false});
-    stars=[{x:1600,y:250,got:false},{x:3140,y:250,got:false},{x:2360,y:150,got:false}];
-    enemies=[
-      mkEnemy(650,300,880), mkEnemy(1200,1130,1560), mkEnemy(2560,2460,2860),
-      mkEnemy(2700,2620,3000), mkEnemy(3700,3560,4000),
-    ];
-    goal={x:4360, y:GROUND_Y};
-    levelW=4600;
-    spawn={x:60,y:GROUND_Y-PH-2};
+  function mkEnemy(x,min,max){ return {type:'book', x, y:GROUND_Y-32, w:34, h:32, vx:70, min, max, dead:false, deadT:0, t:Math.random()*6}; }
+  function mkPlane(x,baseY,min,max){ return {type:'plane', x, y:baseY, w:30, h:18, baseY, amp:26, phase:Math.random()*6, vx:100, min, max, dead:false, deadT:0, t:0}; }
+  function mkTack(x){ return {x, y:GROUND_Y-14, w:20, h:14}; }             // thumbtack hazard on the ground
+  const a=(x,y)=>({x,y,got:false});
+  const gApples=arr=>arr.map(x=>a(x,GROUND_Y-40));
+
+  // Each level: solids (ground + book platforms), apples, stars, enemies, hazards, goal, width, spawn.
+  const LEVELS=[
+    ()=>({
+      solids:[ G(0,940),G(1080,640),G(1840,420),G(2420,900),G(3520,1120),
+        plat(560,410,110),plat(940,330,120),plat(1360,400,120),plat(1560,300,110),
+        plat(2000,360,150),plat(2300,430,110),plat(2760,370,130),plat(3120,300,120),plat(3360,430,120) ],
+      apples: gApples([300,360,620,660,960,1000,1040,1160,1260,1620,1660,2040,2080,2340,2520,2560,2600,2820,2860,3160,3200,3400,3700,3760,3820])
+        .concat([a(600,372),a(980,292),a(1400,362),a(2050,322),a(2800,332),a(3160,262)]),
+      stars:[a(1600,250),a(3140,250),a(2360,150)],
+      enemies:[ mkEnemy(650,300,880),mkEnemy(1200,1130,1560),mkEnemy(2560,2460,2860),mkEnemy(2700,2620,3000),mkEnemy(3700,3560,4000) ],
+      hazards:[],
+      goal:{x:4360,y:GROUND_Y}, levelW:4600, spawn:{x:60,y:GROUND_Y-PH-2},
+    }),
+    ()=>({
+      solids:[ G(0,880),G(1030,650),G(1830,900),G(2890,1400),
+        plat(560,400,110),plat(900,320,120),plat(1350,360,120),plat(1700,300,120),
+        plat(2200,380,130),plat(2500,300,120),plat(2760,410,120),plat(3200,340,130),plat(3500,300,120) ],
+      apples: gApples([200,300,420,620,760,1080,1200,1300,1500,1900,2000,2100,2300,2600,2950,3050,3300,3600,3800,4000])
+        .concat([a(920,282),a(1720,262),a(3520,262),a(2540,262)]),
+      stars:[a(1720,250),a(3220,240)],
+      enemies:[ mkEnemy(500,300,820),mkEnemy(1300,1050,1650),mkEnemy(2100,1850,2680),mkEnemy(3300,2920,3900),
+        mkPlane(1500,300,900,1900),mkPlane(3100,280,2900,3900) ],
+      hazards:[ mkTack(680),mkTack(2350),mkTack(3650) ],
+      goal:{x:4200,y:GROUND_Y}, levelW:4500, spawn:{x:60,y:GROUND_Y-PH-2},
+    }),
+    ()=>({
+      solids:[ G(0,760),G(920,520),G(1600,520),G(2280,520),G(2960,1500),
+        plat(760,400,120),plat(1120,320,120),plat(1440,360,130),plat(1780,300,120),
+        plat(2120,360,130),plat(2460,320,120),plat(2760,400,130),plat(3200,320,120),plat(3500,360,120) ],
+      apples: gApples([200,320,520,980,1100,1660,1780,2340,2420,3050,3150,3300,3500,3700,3900,4100])
+        .concat([a(800,362),a(1160,282),a(1820,262),a(2500,282),a(3240,282)]),
+      stars:[a(1500,270),a(2780,260),a(3540,260)],
+      enemies:[ mkEnemy(400,300,700),mkEnemy(2400,2300,2560),mkEnemy(3300,2980,3900),
+        mkPlane(1300,290,900,1900),mkPlane(2200,300,1900,2600),mkPlane(3400,280,3000,4000) ],
+      hazards:[ mkTack(500),mkTack(1050),mkTack(2400),mkTack(3600) ],
+      goal:{x:4300,y:GROUND_Y}, levelW:4600, spawn:{x:60,y:GROUND_Y-PH-2},
+    }),
+  ];
+  function loadLevel(i){
+    const L=LEVELS[i]();
+    solids=L.solids; apples=L.apples; stars=L.stars; enemies=L.enemies;
+    hazards=L.hazards; goal=L.goal; levelW=L.levelW; spawn=L.spawn; floaters=[];
+    p={ x:spawn.x, y:spawn.y, vx:0, vy:0, dir:1, onGround:true, air:0 };
+    lastSafeX=spawn.x; lastSafeY=spawn.y; cam=0; invuln=0; coyote=0; jumpBuf=0;
+    levelBanner=1.6;
   }
-  function mkEnemy(x,min,max){ return {x, y:GROUND_Y-32, w:34, h:32, vx:70, min, max, dead:false, deadT:0, t:Math.random()*6}; }
 
   // ---------- state ----------
-  let state='menu', cam=0, score=0, appleCount=0, starCount=0, lives=3, best=0;
+  let state='menu', cam=0, score=0, appleCount=0, starCount=0, lives=3, best=0, level=0, levelBanner=0;
   let p, invuln=0, coyote=0, jumpBuf=0, jumpHeld=false, runPhase=0, lastSafeX=60, lastSafeY=0;
   const keys={left:false,right:false};
+  const params=new URLSearchParams(location.search);
+  const startLevel=clamp(parseInt(params.get('lvl')||'0',10)||0,0,LEVELS.length-1);
   try{ best=parseInt(localStorage.getItem('recessrush_best')||'0',10)||0; }catch(e){}
 
   function reset(){
-    buildLevel(); cam=0; score=0; appleCount=0; starCount=0; lives=3;
-    invuln=0; coyote=0; jumpBuf=0; runPhase=0; floaters=[];
-    p={ x:spawn.x, y:spawn.y, vx:0, vy:0, dir:1, onGround:true, air:0 };
-    lastSafeX=spawn.x; lastSafeY=spawn.y;
+    score=0; appleCount=0; starCount=0; lives=3; runPhase=0;
+    level=startLevel; loadLevel(level);
   }
 
   // ---------- input ----------
@@ -248,6 +280,7 @@
       if(e.dead){ e.deadT+=dt; continue; }
       e.t+=dt; e.x+=e.vx*dt;
       if(e.x<e.min){ e.x=e.min; e.vx=Math.abs(e.vx); } else if(e.x>e.max){ e.x=e.max; e.vx=-Math.abs(e.vx); }
+      if(e.type==='plane') e.y=e.baseY+Math.sin(e.t*3+e.phase)*e.amp;
       const box={x:p.x,y:p.y,w:PW,h:PH};
       if(aabb(box,e)){
         const feet=p.y+PH;
@@ -257,16 +290,21 @@
     }
     enemies=enemies.filter(e=>!e.dead || e.deadT<0.6);
 
+    // hazards (thumbtacks)
+    if(invuln<=0){ const box={x:p.x,y:p.y,w:PW,h:PH};
+      for(const hz of hazards){ if(aabb(box,hz)){ hurt(false); break; } } }
+
     // apples & stars
     for(const a of apples){ if(a.got) continue;
       if(Math.abs((p.x+PW/2)-a.x)<20 && Math.abs((p.y+PH/2)-a.y)<24){ a.got=true; appleCount++; score+=10; pop('+10',a.x,a.y-8,'#c62828'); } }
     for(const s of stars){ if(s.got) continue;
       if(Math.abs((p.x+PW/2)-s.x)<24 && Math.abs((p.y+PH/2)-s.y)<28){ s.got=true; starCount++; score+=100; pop('+100',s.x,s.y-8,'#ff8f00'); } }
 
-    // goal
-    if(p.x+PW>goal.x && p.x<goal.x+30 && p.y+PH>goal.y-90){ win(); }
+    // goal (ring the bell)
+    if(p.x+PW>goal.x && p.x<goal.x+30 && p.y+PH>goal.y-90){ nextLevel(); return; }
 
-    // floaters
+    // level banner + floaters
+    if(levelBanner>0) levelBanner-=dt;
     for(const f of floaters) f.t+=dt;
     if(floaters.length) floaters=floaters.filter(f=>f.t<f.life);
 
@@ -280,7 +318,11 @@
     if(pit){ p.x=lastSafeX; p.y=lastSafeY; p.vx=0; p.vy=0; }
     else { p.vy=-320; p.vx=-p.dir*180; }
   }
-  function win(){ score+=Math.max(0,lives)*75; end('YOU WIN!'); }
+  function nextLevel(){
+    score += 100 + Math.max(0,lives)*50;               // level-clear bonus
+    if(level < LEVELS.length-1){ level++; loadLevel(level); }
+    else end('YOU WIN!');
+  }
   function end(title){
     state='over'; document.getElementById('pad').hidden=true;
     if(score>best){ best=score; try{localStorage.setItem('recessrush_best',String(best));}catch(e){} }
@@ -297,6 +339,7 @@
     ctx.clearRect(0,0,LVW,DH);
     drawSky(); drawBackdrop();
     for(const s of solids) drawSolid(s);
+    for(const hz of hazards) drawTack(w2s(hz.x),hz.y);
     for(const a of apples) if(!a.got) drawApple(w2s(a.x),a.y);
     for(const s of stars) if(!s.got) drawStar(w2s(s.x),s.y);
     drawGoal(w2s(goal.x),goal.y);
@@ -306,6 +349,21 @@
       ctx.font='700 20px Trebuchet MS, sans-serif'; ctx.textAlign='center';
       ctx.fillStyle=hexA(f.col||'#1c2a3a',a); ctx.fillText(f.txt, w2s(f.x), f.y-f.t*30); ctx.textAlign='left'; }
     if(state==='play') drawHUD();
+    if(levelBanner>0) drawBanner();
+  }
+  function drawBanner(){
+    const alpha=clamp(levelBanner>1.3?(1.6-levelBanner)/0.3:Math.min(1,levelBanner/0.4),0,1);
+    ctx.save(); ctx.globalAlpha=alpha; ctx.textAlign='center';
+    ctx.fillStyle='#1c2a3a'; ctx.font='800 46px Trebuchet MS, sans-serif';
+    ctx.fillText('LEVEL '+(level+1), LVW/2, DH*0.32);
+    ctx.font='700 20px Trebuchet MS, sans-serif'; ctx.fillStyle='#e8452b';
+    ctx.fillText('of '+LEVELS.length, LVW/2, DH*0.32+34);
+    ctx.textAlign='left'; ctx.restore();
+  }
+  function drawTack(x,y){
+    ctx.fillStyle='#b0b6bd'; ctx.beginPath(); ctx.moveTo(x+10,y+14); ctx.lineTo(x+6,y+4); ctx.lineTo(x+14,y+4); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#e23b2b'; ctx.beginPath(); ctx.ellipse(x+10,y+4,9,5,0,0,7); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.6)'; ctx.beginPath(); ctx.arc(x+7,y+2,2,0,7); ctx.fill();
   }
   function hexA(hex,a){ const n=parseInt(hex.slice(1),16); return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')'; }
 
@@ -379,6 +437,15 @@
   function drawEnemy(e){
     const x=w2s(e.x), y=e.y;
     if(x>LVW+40||x+e.w<-40) return;
+    if(e.type==='plane'){
+      if(e.dead){ ctx.globalAlpha=clamp(1-e.deadT/0.6,0,1); }
+      const dir=e.vx<0?-1:1, tip=x+(dir>0?e.w:0), tail=x+(dir>0?0:e.w);
+      ctx.fillStyle='#fbfbff'; ctx.strokeStyle='#9aa6b5'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(tip,y+e.h/2); ctx.lineTo(tail,y); ctx.lineTo(tail+dir*11,y+e.h/2); ctx.lineTo(tail,y+e.h); ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.strokeStyle='#c3ccd8'; ctx.beginPath(); ctx.moveTo(tip,y+e.h/2); ctx.lineTo(tail+dir*11,y+e.h/2); ctx.stroke();
+      ctx.globalAlpha=1; return;
+    }
     if(e.dead){ ctx.globalAlpha=clamp(1-e.deadT/0.6,0,1); ctx.fillStyle='#7a1f2b';
       roundRect(x-2,y+20,e.w+4,10,3); ctx.fill(); ctx.globalAlpha=1; return; }
     const wob=Math.sin(e.t*10)*2, dir=e.vx<0?-1:1;
@@ -430,6 +497,9 @@
     ctx.fillStyle='rgba(255,249,236,.85)'; roundRect(10,10,196,34,8); ctx.fill();
     ctx.fillStyle='#1c2a3a'; ctx.fillText('★ '+score.toLocaleString(),18,15);
     drawApple(150,27); ctx.fillText('×'+appleCount,162,15);
+    // level (centre)
+    ctx.fillStyle='rgba(255,249,236,.85)'; roundRect(LVW/2-48,10,96,30,8); ctx.fill();
+    ctx.fillStyle='#1c2a3a'; ctx.textAlign='center'; ctx.fillText('Lv '+(level+1)+'/'+LEVELS.length, LVW/2,15); ctx.textAlign='left';
     // lives (right)
     for(let i=0;i<3;i++){ const hx=LVW-30-i*28, on=i<lives;
       ctx.fillStyle=on?'#e8452b':'rgba(0,0,0,.15)';
@@ -449,9 +519,19 @@
   document.getElementById('startBtn').addEventListener('click',startGame);
   document.getElementById('againBtn').addEventListener('click',startGame);
 
-  buildLevel(); p={x:spawn.x,y:spawn.y,vx:0,vy:0,dir:1,onGround:true,air:0}; cam=0;
+  level=startLevel; loadLevel(startLevel); levelBanner=0;   // menu backdrop
   requestAnimationFrame(frame);
 })();
+</script>
+
+<script>
+  // Register the service worker so the game installs and runs offline once
+  // added to the home screen. Silently ignored where unsupported.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
 </script>
 </body>
 </html>
