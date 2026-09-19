@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Covert Strike</title>
+<meta name="description" content="An original retro first-person secret-agent shooter — infiltrate the facility, take out guards, grab the intel and reach the extraction point.">
+<meta name="theme-color" content="#0b0e14">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Covert Strike">
+<meta property="og:description" content="A retro low-res FPS: infiltrate the facility, grab the intel, reach extraction. An original spy-thriller shooter.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Covert Strike">
+<meta name="twitter:description" content="An original retro first-person secret-agent shooter.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Covert Strike">
+<style>html{height:100%;background:#0b0e14;-webkit-text-size-adjust:100%;}</style>
+</head>
+<body>
+<style>
+  html,body{height:100%;margin:0;background:#0b0e14;color:#cfe;overflow:hidden;
+    font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;font-weight:700;
+    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;}
+  #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
+  #stage{position:relative;width:100%;height:100%;max-width:1120px;max-height:640px;background:#05070c;
+    box-shadow:0 12px 40px rgba(0,0,0,.5);overflow:hidden;}
+  canvas{display:block;width:100%;height:100%;image-rendering:pixelated;}
+  .ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;gap:14px;padding:24px;box-sizing:border-box;background:rgba(6,9,15,.9);}
+  .ov[hidden]{display:none!important;}
+  h1{font-size:clamp(34px,8vw,64px);margin:0;letter-spacing:3px;color:#8ef0c0;text-shadow:0 0 16px rgba(80,240,180,.5);}
+  h1 .m{color:#e8452b;}
+  .tag{opacity:.8;font-size:clamp(14px,3.4vw,19px);letter-spacing:1px;}
+  .card{background:#0e1420;border:1px solid #24406a;border-radius:10px;padding:14px 18px;max-width:520px;
+    font-size:clamp(13px,3.3vw,16px);font-weight:600;line-height:1.55;text-align:left;color:#bcd;}
+  .card b{color:#8ef0c0;}
+  .btn{font-family:inherit;font-weight:800;font-size:clamp(18px,4.4vw,24px);padding:12px 30px;letter-spacing:1px;
+    color:#05121a;background:#8ef0c0;border:0;border-radius:10px;cursor:pointer;box-shadow:0 4px 0 #2c9c74;}
+  .btn:active{transform:translateY(3px);box-shadow:0 1px 0 #2c9c74;}
+  .hint{opacity:.55;font-size:clamp(12px,3vw,15px);font-weight:600;}
+  kbd{display:inline-block;min-width:1.1em;text-align:center;border:1px solid #35507a;border-radius:5px;
+    padding:1px 6px;background:#16233a;font-family:inherit;font-size:.9em;color:#cfe;}
+</style>
+
+<div id="wrap"><div id="stage">
+  <canvas id="c"></canvas>
+
+  <div id="title" class="ov">
+    <h1>COVERT&nbsp;<span class="m">STRIKE</span></h1>
+    <div class="tag">an original retro spy-shooter</div>
+    <div class="card">
+      <b>MISSION — Operation Blackout.</b> Infiltrate the facility.<br>
+      1 · Recover the stolen <b>intel</b> (briefcase).<br>
+      2 · Reach the <b>extraction point</b> (green door).<br>
+      A locked door needs a <b>keycard</b>. Don't get shot.
+      <div style="margin-top:8px;">
+        Move <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> · Turn <kbd>←</kbd><kbd>→</kbd> or <b>mouse</b><br>
+        Shoot <kbd>Space</kbd> / <b>click</b> · Reload <kbd>R</kbd> · doors open on contact
+      </div>
+    </div>
+    <div class="btnrow"><button class="btn" id="startBtn">START MISSION ►</button></div>
+    <div class="hint">Click the screen for mouse-look. An original game — not affiliated with any other title.</div>
+  </div>
+
+  <div id="over" class="ov" hidden>
+    <h1 id="overTitle">MISSION FAILED</h1>
+    <div class="card" id="overText" style="text-align:center;"></div>
+    <div class="btnrow"><button class="btn" id="againBtn">RETRY ►</button></div>
+  </div>
+</div></div>
+
+<script>
+(function(){
+  "use strict";
+  const canvas=document.getElementById('c'), ctx=canvas.getContext('2d'), stage=document.getElementById('stage');
+  ctx.imageSmoothingEnabled=false;
+  // low-res render buffer (retro) scaled up to the stage
+  const BW=420, BH=236;
+  const buf=document.createElement('canvas'); buf.width=BW; buf.height=BH;
+  const bx=buf.getContext('2d'); bx.imageSmoothingEnabled=false;
+  let W=0,H=0,DPR=1;
+  function resize(){ const r=stage.getBoundingClientRect(); DPR=Math.min(window.devicePixelRatio||1,2);
+    W=r.width;H=r.height; canvas.width=Math.round(W*DPR); canvas.height=Math.round(H*DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0); ctx.imageSmoothingEnabled=false; }
+  window.addEventListener('resize',resize); resize();
+  const clamp=(v,a,b)=>v<a?a:(v>b?b:v), rand=(a,b)=>a+Math.random()*(b-a);
+
+  // ---------- sound ----------
+  let AC, actx=null;
+  function audioInit(){ try{ AC=AC||window.AudioContext||window.webkitAudioContext; if(!actx) actx=new AC(); if(actx.state==='suspended') actx.resume(); }catch(e){} }
+  function tone(f0,f1,dur,type,vol){ if(!actx) return; const t=actx.currentTime,o=actx.createOscillator(),g=actx.createGain();
+    o.type=type||'square'; o.frequency.setValueAtTime(f0,t); if(f1) o.frequency.exponentialRampToValueAtTime(Math.max(1,f1),t+dur);
+    g.gain.setValueAtTime(vol||0.14,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.connect(g).connect(actx.destination); o.start(t); o.stop(t+dur+0.02); }
+  function noise(dur,vol,freq){ if(!actx) return; const t=actx.currentTime,n=actx.createBufferSource(),b2=actx.createBuffer(1,Math.max(1,actx.sampleRate*dur),actx.sampleRate);
+    const d=b2.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; n.buffer=b2; const g=actx.createGain(),bp=actx.createBiquadFilter();
+    bp.type='bandpass'; bp.frequency.value=freq||900; g.gain.setValueAtTime(vol||0.14,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    n.connect(bp).connect(g).connect(actx.destination); n.start(t); n.stop(t+dur); }
+  const SFX={
+    shoot:()=>{noise(0.09,0.35,1400); tone(300,90,0.09,'square',0.14);},
+    dry:()=>tone(200,120,0.05,'square',0.1),
+    enemyShoot:()=>{noise(0.08,0.22,800);},
+    hit:()=>{noise(0.12,0.3,500); tone(160,60,0.12,'sawtooth',0.16);},
+    hurt:()=>{tone(300,80,0.2,'sawtooth',0.18); noise(0.1,0.15,300);},
+    pickup:()=>[660,990].forEach((f,i)=>setTimeout(()=>tone(f,f,0.09,'triangle',0.14),i*70)),
+    key:()=>[784,1046,1318].forEach((f,i)=>setTimeout(()=>tone(f,f,0.1,'triangle',0.15),i*70)),
+    door:()=>tone(120,300,0.25,'sawtooth',0.12),
+    reload:()=>{tone(400,600,0.06,'square',0.1); setTimeout(()=>tone(600,400,0.06,'square',0.1),110);},
+    win:()=>[523,659,784,1046,1318].forEach((f,i)=>setTimeout(()=>tone(f,f,0.16,'triangle',0.18),i*130)),
+    lose:()=>tone(400,60,0.8,'sawtooth',0.2),
+    alarm:()=>{tone(880,660,0.18,'square',0.12); setTimeout(()=>tone(880,660,0.18,'square',0.12),200);},
+  };
+
+  // ---------- level (generated room grid — guaranteed navigable, all original) ----------
+  const RX=3, RY=3, RW=7, RH=5;
+  const MW=RX*(RW+1)+1, MH=RY*(RH+1)+1;   // 25 x 19
+  let grid, lockDoor, ents, spawn, exitCell;
+  const cell=(x,y)=> (x<0||y<0||x>=MW||y>=MH)?1: grid[y*MW+x];
+  function roomOrigin(rx,ry){ return {x:rx*(RW+1)+1, y:ry*(RH+1)+1}; }
+  function roomCenter(rx,ry){ const o=roomOrigin(rx,ry); return {x:o.x+(RW-1)/2+0.5, y:o.y+(RH-1)/2+0.5}; }
+  function buildLevel(){
+    grid=new Array(MW*MH).fill(1);
+    for(let ry=0;ry<RY;ry++) for(let rx=0;rx<RX;rx++){ const o=roomOrigin(rx,ry);
+      for(let y=0;y<RH;y++) for(let x=0;x<RW;x++) grid[(o.y+y)*MW+(o.x+x)]=0; }
+    // doors between adjacent rooms (carve the shared wall middle)
+    for(let ry=0;ry<RY;ry++) for(let rx=0;rx<RX;rx++){ const o=roomOrigin(rx,ry);
+      if(rx<RX-1){ const wx=o.x+RW, wy=o.y+((RH-1)>>1); grid[wy*MW+wx]=0; }        // right door
+      if(ry<RY-1){ const wx=o.x+((RW-1)>>1), wy=o.y+RH; grid[wy*MW+wx]=0; }        // bottom door
+    }
+    // one LOCKED door: entrance to the exit room (2,2), from room (1,2)
+    { const o=roomOrigin(1,2); const wx=o.x+RW, wy=o.y+((RH-1)>>1); grid[wy*MW+wx]=2; lockDoor={x:wx,y:wy}; }
+    spawn=roomCenter(0,0);
+    exitCell={x:Math.floor(roomCenter(2,2).x), y:Math.floor(roomCenter(2,2).y)};
+    ents=[];
+    const guard=(rx,ry,ox,oy)=>{ const c=roomCenter(rx,ry); ents.push({t:'guard',x:c.x+(ox||0),y:c.y+(oy||0),ang:rand(0,6.28),
+      hp:3,state:'idle',fireCd:rand(0.5,1.5),seeT:0,dead:0,step:0,home:{x:c.x,y:c.y}}); };
+    const pk=(t,rx,ry,ox,oy)=>{ const c=roomCenter(rx,ry); ents.push({t,x:c.x+(ox||0),y:c.y+(oy||0),got:false}); };
+    guard(1,0); guard(2,0,-1,0); guard(0,1); guard(1,1,1,-1); guard(2,1); guard(1,2); guard(2,2,1,1);
+    pk('ammo',1,0,1,1); pk('health',0,1,-1,1); pk('armor',1,1); pk('ammo',2,1,-1,1);
+    pk('key',2,0,1,0);         // keycard (top-right room)
+    pk('intel',2,1,0,-1);      // the intel briefcase (right-middle room)
+    pk('health',1,2,-1,0);
+  }
+
+  // ---------- sprites (pre-rendered offscreen, original art) ----------
+  function makeSprite(w,h,draw){ const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+    const g=cv.getContext('2d'); draw(g,w,h); return cv; }
+  const SPR={};
+  function buildSprites(){
+    // guard: dark tactical suit, visor helmet, rifle
+    function guard(g,w,h,fire,dead){
+      g.clearRect(0,0,w,h); g.save();
+      if(dead){ g.translate(w/2,h); g.rotate(-1.4); g.translate(-w/2,-h); }
+      const cx=w/2;
+      // legs
+      g.fillStyle='#20242e'; g.fillRect(cx-11,h-24,9,24); g.fillRect(cx+2,h-24,9,24);
+      // torso (tac vest)
+      g.fillStyle='#2b3340'; g.fillRect(cx-15,h-52,30,30);
+      g.fillStyle='#3a4658'; g.fillRect(cx-15,h-52,30,6);
+      g.fillStyle='#151a22'; g.fillRect(cx-6,h-48,12,20);          // vest straps
+      // arms
+      g.fillStyle='#242a34'; g.fillRect(cx-19,h-50,6,22); g.fillRect(cx+13,h-50,6,22);
+      // head + visor
+      g.fillStyle='#c8a884'; g.beginPath(); g.arc(cx,h-58,9,0,7); g.fill();
+      g.fillStyle='#1b2028'; g.fillRect(cx-9,h-64,18,8);           // helmet
+      g.fillStyle=fire?'#ff5a3a':'#5fd0ff'; g.fillRect(cx-7,h-58,14,3); // visor glow
+      // rifle
+      g.fillStyle='#0e1218'; g.fillRect(cx+2,h-46, fire?26:18, 5);
+      if(fire){ g.fillStyle='#ffd23b'; g.beginPath(); g.arc(cx+30,h-44,6,0,7); g.fill();
+        g.fillStyle='#fff6c0'; g.beginPath(); g.arc(cx+30,h-44,3,0,7); g.fill(); }
+      g.restore();
+    }
+    SPR.guard=makeSprite(56,80,(g,w,h)=>guard(g,w,h,false,false));
+    SPR.guardFire=makeSprite(72,80,(g,w,h)=>guard(g,w,h,true,false));
+    SPR.guardDead=makeSprite(80,80,(g,w,h)=>guard(g,w,h,false,true));
+    // pickups
+    SPR.health=makeSprite(28,28,(g)=>{ g.fillStyle='#0e2a18'; g.fillRect(2,2,24,24); g.strokeStyle='#2fd06a'; g.lineWidth=2; g.strokeRect(2,2,24,24);
+      g.fillStyle='#2fd06a'; g.fillRect(12,7,4,14); g.fillRect(7,12,14,4); });
+    SPR.armor=makeSprite(28,30,(g)=>{ g.fillStyle='#5fa8ff'; g.beginPath(); g.moveTo(14,2); g.lineTo(26,7); g.lineTo(22,26); g.lineTo(14,30); g.lineTo(6,26); g.lineTo(2,7); g.closePath(); g.fill();
+      g.fillStyle='#bfe0ff'; g.beginPath(); g.moveTo(14,6); g.lineTo(21,9); g.lineTo(14,16); g.closePath(); g.fill(); });
+    SPR.ammo=makeSprite(26,22,(g)=>{ g.fillStyle='#3a2a12'; g.fillRect(2,6,22,14); for(let i=0;i<4;i++){ g.fillStyle='#e8b23b'; g.fillRect(4+i*5,4,3,16); g.fillStyle='#b8842a'; g.fillRect(4+i*5,4,3,4);} });
+    SPR.key=makeSprite(28,20,(g)=>{ g.fillStyle='#ffd23b'; g.fillRect(2,4,18,12); g.fillStyle='#111'; g.fillRect(5,7,10,2); g.fillStyle='#ffd23b'; g.fillRect(18,7,8,3); g.fillRect(22,7,3,7); });
+    SPR.intel=makeSprite(30,26,(g)=>{ g.fillStyle='#2a2018'; g.fillRect(2,6,26,20); g.fillStyle='#4a3826'; g.fillRect(2,6,26,4); g.fillStyle='#111'; g.fillRect(12,3,6,4);
+      g.fillStyle='#8ef0c0'; g.fillRect(11,13,8,6); });
+  }
+
+  // ---------- state ----------
+  let state='title';
+  let px,py,pa, keys={}, mouseDX=0;
+  let hp,armor,mag,ammo,MAGSIZE=12, hasKey,hasIntel, muzzle,dmgFlash,shootCd,objMsg,objT, kills, locked=false, endTitle,endText;
+  const zbuf=new Float32Array(BW);
+  function reset(){
+    buildLevel();
+    px=spawn.x; py=spawn.y; pa=Math.PI*0.25;
+    hp=100; armor=0; mag=MAGSIZE; ammo=48; hasKey=false; hasIntel=false;
+    muzzle=0; dmgFlash=0; shootCd=0; kills=0; objMsg='OBJECTIVE: find the intel'; objT=3;
+  }
+
+  // ---------- input ----------
+  const startBtn=document.getElementById('startBtn'), againBtn=document.getElementById('againBtn');
+  function start(){ audioInit(); document.getElementById('title').hidden=true; document.getElementById('over').hidden=true;
+    reset(); state='play'; last=performance.now(); }
+  startBtn.onclick=start; againBtn.onclick=start;
+  window.addEventListener('keydown',e=>{ audioInit(); const k=e.key.toLowerCase();
+    keys[k]=true;
+    if(['arrowleft','arrowright','arrowup','arrowdown',' '].includes(k)) e.preventDefault();
+    if(k===' ' && state==='play') shoot();
+    if(k==='r' && state==='play') reload();
+    if((k==='enter'||k===' ') && state!=='play' && document.getElementById('title').hidden===false) start();
+    if(state==='dead' && (k==='enter'||k===' ')) start();
+  });
+  window.addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
+  canvas.addEventListener('mousedown',()=>{ audioInit(); if(state==='play'){ shoot(); if(document.pointerLockElement!==canvas) canvas.requestPointerLock&&canvas.requestPointerLock(); } });
+  document.addEventListener('mousemove',e=>{ if(document.pointerLockElement===canvas) mouseDX+=e.movementX; });
+
+  // ---------- combat ----------
+  function reload(){ if(mag>=MAGSIZE||ammo<=0) return; const need=MAGSIZE-mag, take=Math.min(need,ammo); mag+=take; ammo-=take; SFX.reload(); shootCd=0.5; }
+  function losClear(ax,ay,bx,by){ // ray march, false if a wall blocks
+    const dx=bx-ax, dy=by-ay, dist=Math.hypot(dx,dy), steps=Math.ceil(dist/0.1);
+    for(let i=1;i<steps;i++){ const t=i/steps; if(solid(ax+dx*t, ay+dy*t)) return false; } return true;
+  }
+  function shoot(){
+    if(shootCd>0) return;
+    if(mag<=0){ SFX.dry(); shootCd=0.2; return; }
+    mag--; muzzle=0.06; shootCd=0.16; SFX.shoot();
+    // hitscan: nearest live guard within a small aim cone + LOS
+    let best=null, bestD=1e9;
+    for(const e of ents){ if(e.t!=='guard'||e.dead) continue;
+      const dx=e.x-px, dy=e.y-py, d=Math.hypot(dx,dy); if(d>16) continue;
+      let ang=Math.atan2(dy,dx)-pa; while(ang>Math.PI)ang-=6.283; while(ang<-Math.PI)ang+=6.283;
+      const aim=Math.abs(ang), tol=0.06+0.09/Math.max(1,d);   // easier at range-center
+      if(aim<tol && losClear(px,py,e.x,e.y) && d<bestD){ best=e; bestD=d; }
+    }
+    if(best){ best.hp-=1; best.hitT=0.1; SFX.hit(); if(best.hp<=0){ best.dead=1; best.deadT=0; kills++; } }
+  }
+
+  // ---------- movement / collision ----------
+  function solid(x,y){ const c=cell(Math.floor(x),Math.floor(y)); if(c===1) return true;
+    if(c===2 && !(hasKey)) return true; return false; }
+  function tryMove(nx,ny){ const r=0.22;
+    if(!solid(nx+ (nx>px?r:-r), py)) px=nx; else px=px;   // x axis
+    if(!solid(px, ny+ (ny>py?r:-r))) py=ny;               // y axis (recompute with updated px)
+  }
+
+  // ---------- update ----------
+  let last=performance.now();
+  function update(dt){
+    // turn
+    let turn=0; if(keys['arrowleft']) turn-=1; if(keys['arrowright']) turn+=1;
+    pa += turn*2.6*dt + mouseDX*0.0026; mouseDX=0;
+    // move
+    const fwd=(keys['w']?1:0)-(keys['s']?1:0), strafe=(keys['d']?1:0)-(keys['a']?1:0);
+    const spd=2.7*dt; const ca=Math.cos(pa), sa=Math.sin(pa);
+    let nx=px+(ca*fwd - sa*strafe)*spd*1.0;
+    let ny=py+(sa*fwd + ca*strafe)*spd*1.0;
+    // axis-separated collision
+    if(!solid(nx + Math.sign(nx-px)*0.22, py)) px=nx;
+    if(!solid(px, ny + Math.sign(ny-py)*0.22)) py=ny;
+
+    if(muzzle>0) muzzle-=dt; if(dmgFlash>0) dmgFlash-=dt; if(shootCd>0) shootCd-=dt; if(objT>0) objT-=dt;
+
+    // pickups + entities
+    for(const e of ents){
+      if(e.t==='guard'){ updateGuard(e,dt); continue; }
+      if(e.got) continue;
+      if(Math.hypot(e.x-px,e.y-py)<0.5){ collect(e); }
+    }
+    // extraction
+    if(Math.floor(px)===exitCell.x && Math.floor(py)===exitCell.y){
+      if(hasIntel) win(); else { setObj('Get the INTEL first!',1.5); }
+    }
+    if(hp<=0){ lose(); }
+  }
+  function collect(e){
+    e.got=true;
+    if(e.t==='health'){ hp=Math.min(100,hp+30); setObj('+30 HEALTH',1.4); SFX.pickup(); }
+    else if(e.t==='armor'){ armor=Math.min(100,armor+50); setObj('+50 ARMOR',1.4); SFX.pickup(); }
+    else if(e.t==='ammo'){ ammo+=24; setObj('+24 AMMO',1.4); SFX.pickup(); }
+    else if(e.t==='key'){ hasKey=true; setObj('KEYCARD acquired — locked doors open',2.2); SFX.key(); }
+    else if(e.t==='intel'){ hasIntel=true; setObj('INTEL secured! Reach EXTRACTION (green door)',2.6); SFX.key(); }
+  }
+  function setObj(m,t){ objMsg=m; objT=t; }
+  function updateGuard(e,dt){
+    if(e.dead){ e.deadT+=dt; return; }
+    if(e.hitT>0) e.hitT-=dt;
+    const dx=px-e.x, dy=py-e.y, d=Math.hypot(dx,dy);
+    const see = d<10 && losClear(e.x,e.y,px,py);
+    if(see){ if(e.state==='idle'){ SFX.alarm(); locked=true; } e.state='alert'; e.seeT=2.0;
+      e.ang=Math.atan2(dy,dx);
+      // approach a bit, keep some distance
+      if(d>2.5){ const s=1.2*dt; const nx=e.x+Math.cos(e.ang)*s, ny=e.y+Math.sin(e.ang)*s;
+        if(!solid(nx,e.y)) e.x=nx; if(!solid(e.x,ny)) e.y=ny; e.step+=dt*6; }
+      e.fireCd-=dt;
+      if(e.fireCd<=0){ e.fireCd=rand(0.8,1.6); e.firing=0.18;
+        SFX.enemyShoot();
+        // hit chance falls with distance
+        if(Math.random() < clamp(0.7-d*0.05,0.12,0.6)){ damage(rand(6,12)); }
+      }
+    } else {
+      if(e.seeT>0){ e.seeT-=dt; } else { e.state='idle';
+        // gentle patrol drift back toward home
+        const hx=e.home.x-e.x, hy=e.home.y-e.y; if(Math.hypot(hx,hy)>0.4){ e.ang=Math.atan2(hy,hx);
+          const s=0.5*dt; if(!solid(e.x+Math.cos(e.ang)*s,e.y)) e.x+=Math.cos(e.ang)*s; if(!solid(e.x,e.y+Math.sin(e.ang)*s)) e.y+=Math.sin(e.ang)*s; e.step+=dt*3; } }
+    }
+    if(e.firing>0) e.firing-=dt;
+  }
+  function damage(amt){ let a=amt; if(armor>0){ const ab=Math.min(armor,a*0.6); armor-=ab; a-=ab; } hp-=a; dmgFlash=0.35; SFX.hurt(); }
+
+  function win(){ state='dead'; endTitle='MISSION COMPLETE'; endText='Intel secured and extracted. Guards down: '+kills+'.'; SFX.win(); showOver(); }
+  function lose(){ state='dead'; endTitle='MISSION FAILED'; endText='Agent down. Guards eliminated: '+kills+'. Try again.'; SFX.lose(); showOver(); }
+  function showOver(){ document.getElementById('overTitle').textContent=endTitle;
+    document.getElementById('overText').textContent=endText; document.getElementById('over').hidden=false;
+    if(document.pointerLockElement===canvas) document.exitPointerLock&&document.exitPointerLock(); }
+
+  // ---------- rendering ----------
+  const FOV=0.72;   // camera plane scale (~72°)
+  function render(){
+    // ceiling / floor gradient
+    const cg=bx.createLinearGradient(0,0,0,BH/2); cg.addColorStop(0,'#0a0f18'); cg.addColorStop(1,'#1a2434');
+    bx.fillStyle=cg; bx.fillRect(0,0,BW,BH/2);
+    const fg=bx.createLinearGradient(0,BH/2,0,BH); fg.addColorStop(0,'#232a24'); fg.addColorStop(1,'#0d110c');
+    bx.fillStyle=fg; bx.fillRect(0,BH/2,BW,BH/2);
+    // raycast walls
+    const ca=Math.cos(pa), sa=Math.sin(pa);
+    const planeX=-sa*FOV, planeY=ca*FOV;
+    for(let col=0; col<BW; col++){
+      const camX=2*col/BW-1;
+      const rdx=ca+planeX*camX, rdy=sa+planeY*camX;
+      let mapX=Math.floor(px), mapY=Math.floor(py);
+      const ddx=Math.abs(1/rdx), ddy=Math.abs(1/rdy);
+      let stepX,stepY,sideX,sideY;
+      if(rdx<0){ stepX=-1; sideX=(px-mapX)*ddx; } else { stepX=1; sideX=(mapX+1-px)*ddx; }
+      if(rdy<0){ stepY=-1; sideY=(py-mapY)*ddy; } else { stepY=1; sideY=(mapY+1-py)*ddy; }
+      let hit=0, side=0, ctype=1, guardN=0;
+      while(hit===0 && guardN++<64){
+        if(sideX<sideY){ sideX+=ddx; mapX+=stepX; side=0; } else { sideY+=ddy; mapY+=stepY; side=1; }
+        const cv=cell(mapX,mapY);
+        if(cv===1 || (cv===2 && !hasKey)){ hit=1; ctype=cv; }
+      }
+      let dist = side===0 ? (sideX-ddx) : (sideY-ddy); if(dist<0.02) dist=0.02;
+      zbuf[col]=dist;
+      const lh=Math.min(BH*3, (BH/dist)|0);
+      const y0=((BH-lh)>>1), y1=y0+lh;
+      // wall colour: tech panels; locked door = amber; side shading + distance fog
+      let base = ctype===2 ? [230,170,50] : (side===0?[90,120,150]:[60,86,112]);
+      const fog = clamp(1-dist/13,0.12,1);
+      bx.fillStyle='rgb('+((base[0]*fog)|0)+','+((base[1]*fog)|0)+','+((base[2]*fog)|0)+')';
+      bx.fillRect(col,Math.max(0,y0),1,Math.min(BH,y1)-Math.max(0,y0));
+      // panel seam highlight
+      if(lh>18){ bx.fillStyle='rgba(255,255,255,'+(0.05*fog)+')'; bx.fillRect(col,Math.max(0,y0),1,2); }
+    }
+    // sprites (enemies + pickups), far to near
+    const spr=ents.filter(e=> e.t!=='guard' ? !e.got : true)
+      .map(e=>({e, d:(e.x-px)*(e.x-px)+(e.y-py)*(e.y-py)})).sort((a,b)=>b.d-a.d);
+    for(const {e} of spr) drawSprite(e, ca,sa,planeX,planeY);
+    // blit buffer to screen
+    ctx.imageSmoothingEnabled=false; ctx.drawImage(buf,0,0,BW,BH,0,0,W,H);
+    drawHUD();
+  }
+  function drawSprite(e, ca,sa,planeX,planeY){
+    const spx=e.x-px, spy=e.y-py;
+    const invDet=1/(planeX*sa - ca*planeY);
+    const tx=invDet*(sa*spx - ca*spy);
+    const ty=invDet*(-planeY*spx + planeX*spy);   // depth
+    if(ty<=0.2) return;
+    let img, scale=1, yoff=0;
+    if(e.t==='guard'){ img = e.dead? SPR.guardDead : (e.firing>0? SPR.guardFire : SPR.guard); if(e.dead) yoff=0.25; }
+    else img = SPR[e.t];
+    const sh=Math.abs((BH/ty))*(e.t==='guard'?1.0:0.5);
+    const sw=sh*(img.width/img.height);
+    const screenX=(BW/2)*(1+tx/ty);
+    const bob = e.t==='guard'&&!e.dead? Math.sin((e.step||0))*sh*0.03 : Math.sin(performance.now()/400+e.x)*2*(e.t!=='guard'?1:0);
+    const y0=(BH/2 - sh/2 + sh*yoff + bob) + (e.t!=='guard'? sh*0.25:0);
+    const x0=screenX - sw/2;
+    const sx0=Math.floor(x0), sx1=Math.ceil(x0+sw);
+    for(let sx=Math.max(0,sx0); sx<Math.min(BW,sx1); sx++){
+      if(ty >= zbuf[sx]) continue;               // occluded by wall
+      const u=(sx-x0)/sw; const srcX=clamp(Math.floor(u*img.width),0,img.width-1);
+      bx.drawImage(img, srcX,0,1,img.height, sx, y0, 1, sh);
+    }
+    // hit flash
+    if(e.t==='guard' && e.hitT>0){ bx.globalAlpha=0.5; bx.fillStyle='#fff';
+      for(let sx=Math.max(0,sx0); sx<Math.min(BW,sx1); sx++){ if(ty<zbuf[sx]) bx.fillRect(sx,y0,1,sh); } bx.globalAlpha=1; }
+  }
+
+  // ---------- HUD ----------
+  function drawHUD(){
+    const s=W/BW;                     // scale factor for positioning
+    // damage vignette
+    if(dmgFlash>0){ ctx.fillStyle='rgba(200,20,20,'+(dmgFlash*0.5)+')'; ctx.fillRect(0,0,W,H); }
+    // crosshair
+    ctx.strokeStyle='rgba(140,240,192,.9)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(W/2-10,H/2); ctx.lineTo(W/2-3,H/2); ctx.moveTo(W/2+3,H/2); ctx.lineTo(W/2+10,H/2);
+    ctx.moveTo(W/2,H/2-10); ctx.lineTo(W/2,H/2-3); ctx.moveTo(W/2,H/2+3); ctx.lineTo(W/2,H/2+10); ctx.stroke();
+    // gun viewmodel
+    drawGun();
+    // bottom bar
+    ctx.fillStyle='rgba(6,10,16,.66)'; ctx.fillRect(0,H-54,W,54);
+    ctx.fillStyle='#8ef0c0'; ctx.font='800 20px Trebuchet MS, sans-serif'; ctx.textAlign='left';
+    ctx.fillText('HP '+Math.max(0,Math.ceil(hp)), 16, H-30);
+    ctx.fillStyle='#5fa8ff'; ctx.fillText('ARM '+Math.ceil(armor), 120, H-30);
+    ctx.fillStyle='#ffd23b'; ctx.textAlign='right'; ctx.fillText(mag+' / '+ammo, W-16, H-30);
+    ctx.textAlign='left';
+    // health bar
+    ctx.fillStyle='#22110f'; ctx.fillRect(16,H-22,180,8); ctx.fillStyle='#e8452b'; ctx.fillRect(16,H-22,180*clamp(hp/100,0,1),8);
+    ctx.fillStyle='#2fd06a'; ctx.fillRect(16,H-22,180*clamp(hp/100,0,1),4);
+    // keycard / intel indicators
+    ctx.textAlign='right'; ctx.font='800 13px Trebuchet MS, sans-serif';
+    ctx.fillStyle=hasKey?'#ffd23b':'#3a4658'; ctx.fillText('KEY', W-150, H-16);
+    ctx.fillStyle=hasIntel?'#8ef0c0':'#3a4658'; ctx.fillText('INTEL', W-100, H-16);
+    ctx.textAlign='left';
+    // objective ticker
+    if(objT>0){ ctx.fillStyle='rgba(6,10,16,.7)'; ctx.fillRect(0,14,W,30);
+      ctx.fillStyle='#8ef0c0'; ctx.font='800 16px Trebuchet MS, sans-serif'; ctx.textAlign='center';
+      ctx.fillText(objMsg, W/2, 22); ctx.textAlign='left'; }
+    drawMinimap();
+  }
+  function drawGun(){
+    const gw=W*0.34, gx=W/2, gy=H-40 + (muzzle>0?-4:Math.sin(performance.now()/500)*3);
+    ctx.fillStyle='#12161e'; ctx.beginPath();
+    ctx.moveTo(gx-gw*0.10,H); ctx.lineTo(gx-gw*0.10,gy); ctx.lineTo(gx+gw*0.10,gy-gw*0.18);
+    ctx.lineTo(gx+gw*0.34,gy-gw*0.18); ctx.lineTo(gx+gw*0.34,H); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#1c2431'; ctx.fillRect(gx-gw*0.10,gy,gw*0.20,H-gy);   // grip
+    ctx.fillStyle='#0a0d12'; ctx.fillRect(gx+gw*0.30,gy-gw*0.16, gw*0.16, gw*0.06); // barrel
+    if(muzzle>0){ ctx.fillStyle='#ffd23b'; ctx.beginPath(); ctx.arc(gx+gw*0.5,gy-gw*0.13,gw*0.10,0,7); ctx.fill();
+      ctx.fillStyle='#fff6c0'; ctx.beginPath(); ctx.arc(gx+gw*0.5,gy-gw*0.13,gw*0.05,0,7); ctx.fill(); }
+  }
+  function drawMinimap(){
+    const mm=Math.min(W,H)*0.22, cs=mm/MW, ox=W-mm-12, oy=12;
+    ctx.fillStyle='rgba(6,10,16,.6)'; ctx.fillRect(ox-3,oy-3,mm+6,cs*MH+6);
+    for(let y=0;y<MH;y++) for(let x=0;x<MW;x++){ const c=grid[y*MW+x];
+      if(c===1){ ctx.fillStyle='#2a3550'; ctx.fillRect(ox+x*cs,oy+y*cs,cs,cs); }
+      else if(c===2){ ctx.fillStyle=hasKey?'#2c6':'#ffd23b'; ctx.fillRect(ox+x*cs,oy+y*cs,cs,cs); } }
+    // exit
+    ctx.fillStyle='#2fd06a'; ctx.fillRect(ox+exitCell.x*cs,oy+exitCell.y*cs,cs,cs);
+    // pickups + guards
+    for(const e of ents){ if(e.t==='guard'){ if(e.dead) continue; ctx.fillStyle=e.state==='alert'?'#ff5a3a':'#c85'; ctx.fillRect(ox+e.x*cs-1,oy+e.y*cs-1,2,2); }
+      else if(!e.got){ ctx.fillStyle= e.t==='intel'?'#8ef0c0':(e.t==='key'?'#ffd23b':'#5fa8ff'); ctx.fillRect(ox+e.x*cs-1,oy+e.y*cs-1,2,2); } }
+    // player
+    ctx.fillStyle='#fff'; ctx.fillRect(ox+px*cs-1.5,oy+py*cs-1.5,3,3);
+    ctx.strokeStyle='#fff'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(ox+px*cs,oy+py*cs);
+    ctx.lineTo(ox+px*cs+Math.cos(pa)*6, oy+py*cs+Math.sin(pa)*6); ctx.stroke();
+  }
+
+  // ---------- loop ----------
+  function frame(now){ let dt=Math.min((now-last)/1000,0.05); last=now;
+    if(state==='play') update(dt);
+    if(state==='play'||state==='dead') render();
+    requestAnimationFrame(frame);
+  }
+  buildSprites(); buildLevel(); px=spawn.x; py=spawn.y; pa=0;
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
